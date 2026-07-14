@@ -6,6 +6,7 @@ database access.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import aiosqlite
@@ -37,6 +38,8 @@ class SQLiteBackend(StorageBackend):
 
     async def initialize(self) -> None:
         """Create tables and open a persistent connection."""
+        if self._db_path != ":memory:":
+            Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = await aiosqlite.connect(self._db_path)
         self._conn.row_factory = aiosqlite.Row
         await init_database(self._db_path, conn=self._conn)
@@ -71,6 +74,19 @@ class SQLiteBackend(StorageBackend):
         cursor = await self._db.execute("DELETE FROM users WHERE id = ?", (user_id,))
         await self._db.commit()
         return cursor.rowcount > 0
+
+    async def get_user_by_name(self, username: str) -> dict[str, Any] | None:
+        cursor = await self._db.execute(
+            "SELECT id, username, created_at FROM users WHERE username = ?", (username,)
+        )
+        row = await cursor.fetchone()
+        return dict(row) if row else None
+
+    async def list_users(self) -> list[dict[str, Any]]:
+        cursor = await self._db.execute(
+            "SELECT id, username, created_at FROM users ORDER BY created_at DESC"
+        )
+        return [dict(row) for row in await cursor.fetchall()]
 
     # ------------------------------------------------------------------
     # Session operations

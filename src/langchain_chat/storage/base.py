@@ -68,6 +68,24 @@ class StorageBackend(ABC):
         """
         ...
 
+    @abstractmethod
+    async def get_user_by_name(self, username: str) -> dict[str, Any] | None:
+        """Retrieve a user by username.
+
+        Returns:
+            User dict or None if not found.
+        """
+        ...
+
+    @abstractmethod
+    async def list_users(self) -> list[dict[str, Any]]:
+        """List all users.
+
+        Returns:
+            List of user dicts.
+        """
+        ...
+
     # ------------------------------------------------------------------
     # Session operations
     # ------------------------------------------------------------------
