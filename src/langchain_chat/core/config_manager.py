@@ -85,9 +85,7 @@ class ConfigManager:
         """Load and parse the main YAML config file."""
         yaml_path = self._config_dir / "config.yaml"
         if not yaml_path.exists():
-            raise FileNotFoundError(
-                f"Configuration file not found: {yaml_path}"
-            )
+            raise FileNotFoundError(f"Configuration file not found: {yaml_path}")
         with open(yaml_path, "r", encoding="utf-8") as fh:
             return yaml.safe_load(fh) or {}
 

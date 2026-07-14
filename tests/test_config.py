@@ -169,9 +169,7 @@ class TestEnvLoading:
             (config_dir / "config.yaml").write_text(
                 "app:\n  name: env-test\n  env: dev\n", encoding="utf-8"
             )
-            (root / ".env").write_text(
-                "OPENAI_API_KEY=sk-test-key-12345\n", encoding="utf-8"
-            )
+            (root / ".env").write_text("OPENAI_API_KEY=sk-test-key-12345\n", encoding="utf-8")
             yield str(config_dir)
 
     def test_env_file_loads_into_os_environ(self, temp_config_with_env: str) -> None:

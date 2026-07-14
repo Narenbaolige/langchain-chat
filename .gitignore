@@ -38,5 +38,8 @@ htmlcov/
 # ruff
 .ruff_cache/
 
+# Data
+data/
+
 # Logs
 *.log
