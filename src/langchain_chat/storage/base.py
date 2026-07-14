@@ -168,15 +168,36 @@ class StorageBackend(ABC):
     # ------------------------------------------------------------------
 
     @abstractmethod
-    async def create_preset(self, name: str, content: str) -> dict[str, Any]:
+    async def create_preset(
+        self, name: str, content: str, prompt_type: str = "user"
+    ) -> dict[str, Any]:
         """Create a new prompt preset.
 
         Args:
-            name: Preset name.
+            name: Preset name (must be unique).
             content: Preset content / template text.
+            prompt_type: "system" or "user" (default).
 
         Returns:
-            dict with keys: id, name, content, created_at.
+            dict with keys: id, name, content, prompt_type, created_at.
+        """
+        ...
+
+    @abstractmethod
+    async def get_preset(self, preset_id: int) -> dict[str, Any] | None:
+        """Retrieve a single preset by ID.
+
+        Returns:
+            Preset dict or None if not found.
+        """
+        ...
+
+    @abstractmethod
+    async def get_preset_by_name(self, name: str) -> dict[str, Any] | None:
+        """Retrieve a preset by name.
+
+        Returns:
+            Preset dict or None if not found.
         """
         ...
 
@@ -186,6 +207,15 @@ class StorageBackend(ABC):
 
         Returns:
             List of preset dicts.
+        """
+        ...
+
+    @abstractmethod
+    async def delete_preset(self, preset_id: int) -> bool:
+        """Delete a preset by ID.
+
+        Returns:
+            True if deleted, False if not found.
         """
         ...
 

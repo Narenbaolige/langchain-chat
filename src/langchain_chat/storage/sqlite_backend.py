@@ -157,22 +157,47 @@ class SQLiteBackend(StorageBackend):
     # Preset operations
     # ------------------------------------------------------------------
 
-    async def create_preset(self, name: str, content: str) -> dict[str, Any]:
+    async def create_preset(
+        self, name: str, content: str, prompt_type: str = "user"
+    ) -> dict[str, Any]:
         cursor = await self._db.execute(
-            "INSERT INTO presets (name, content) VALUES (?, ?)", (name, content)
+            "INSERT INTO presets (name, content, prompt_type) VALUES (?, ?, ?)",
+            (name, content, prompt_type),
         )
         await self._db.commit()
         row = await self._db.execute(
-            "SELECT id, name, content, created_at FROM presets WHERE id = ?",
+            "SELECT id, name, content, prompt_type, created_at FROM presets WHERE id = ?",
             (cursor.lastrowid,),
         )
         return dict(await row.fetchone())
 
+    async def get_preset(self, preset_id: int) -> dict[str, Any] | None:
+        cursor = await self._db.execute(
+            "SELECT id, name, content, prompt_type, created_at FROM presets WHERE id = ?",
+            (preset_id,),
+        )
+        row = await cursor.fetchone()
+        return dict(row) if row else None
+
+    async def get_preset_by_name(self, name: str) -> dict[str, Any] | None:
+        cursor = await self._db.execute(
+            "SELECT id, name, content, prompt_type, created_at FROM presets WHERE name = ?",
+            (name,),
+        )
+        row = await cursor.fetchone()
+        return dict(row) if row else None
+
     async def get_presets(self) -> list[dict[str, Any]]:
         cursor = await self._db.execute(
-            "SELECT id, name, content, created_at FROM presets ORDER BY created_at DESC"
+            "SELECT id, name, content, prompt_type, created_at FROM presets "
+            "ORDER BY created_at DESC"
         )
         return [dict(row) for row in await cursor.fetchall()]
+
+    async def delete_preset(self, preset_id: int) -> bool:
+        cursor = await self._db.execute("DELETE FROM presets WHERE id = ?", (preset_id,))
+        await self._db.commit()
+        return cursor.rowcount > 0
 
     # ------------------------------------------------------------------
     # Config operations
