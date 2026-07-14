@@ -2,10 +2,16 @@
 
 import sys
 
+from langchain_chat.core.config_manager import ConfigManager
+
 
 def main() -> None:
     """Entry point for langchain-chat."""
-    print("langchain-chat v0.1.0")
+    cm = ConfigManager()
+    config = cm.load()
+
+    print(f"{config.app.name} initialized")
+    print(f"Environment: {config.app.env}")
     print(f"Python {sys.version}")
 
 
