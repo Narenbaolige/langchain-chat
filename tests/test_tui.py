@@ -69,6 +69,7 @@ class TestCommandExecution:
         return CommandContext(
             user_manager=user_manager,
             prompt_manager=prompt_manager,
+            session_manager=session_manager,
             engine=engine,
             view=view,
             current_user_name="testuser",
@@ -172,3 +173,100 @@ class TestTuiChatAppConstruction:
             assert app is not None
         finally:
             await backend.close()
+
+
+# ------------------------------------------------------------------
+# Step 8 — Session management command tests
+# ------------------------------------------------------------------
+
+
+class TestStep8Commands:
+    """Tests for the Step 8 session management commands."""
+
+    @pytest.fixture
+    async def ctx(self) -> CommandContext:
+        """Build a CommandContext with session_manager."""
+        config = StorageConfig(type="sqlite", database=":memory:")
+        backend = SQLiteBackend(config)
+        await backend.initialize()
+
+        user_manager = UserManager(backend)
+        prompt_manager = PromptManager(backend)
+        session_manager = SessionManager(backend)
+
+        try:
+            user = await user_manager.create_user("testuser")
+        except Exception:
+            user = await user_manager.get_user_by_name("testuser")
+
+        session = await session_manager.create_session(user.id, title="Test")
+        engine = ChatEngine(LLMConfig(model="test"), model=FakeModel(response="OK"))
+        view = ChatView()
+
+        return CommandContext(
+            user_manager=user_manager,
+            prompt_manager=prompt_manager,
+            session_manager=session_manager,
+            engine=engine,
+            view=view,
+            current_user_name="testuser",
+            session=session,
+        )
+
+    async def test_sessions_command(self, ctx: CommandContext) -> None:
+        handler = CommandHandler()
+        result = await handler.handle("/sessions", ctx)
+        assert result is not EXIT
+
+    async def test_search_command(self, ctx: CommandContext) -> None:
+        handler = CommandHandler()
+        result = await handler.handle("/search Test", ctx)
+        assert result is not EXIT
+
+    async def test_search_missing_query(self, ctx: CommandContext) -> None:
+        handler = CommandHandler()
+        result = await handler.handle("/search", ctx)
+        assert result is not EXIT
+
+    async def test_rename_command(self, ctx: CommandContext) -> None:
+        handler = CommandHandler()
+        result = await handler.handle("/rename New Name", ctx)
+        assert result is not EXIT
+
+    async def test_rename_missing_title(self, ctx: CommandContext) -> None:
+        handler = CommandHandler()
+        result = await handler.handle("/rename", ctx)
+        assert result is not EXIT
+
+    async def test_open_command(self, ctx: CommandContext) -> None:
+        opened = False
+
+        async def _on_open(sid: int) -> None:
+            nonlocal opened
+            opened = True
+
+        ctx.on_session_open = _on_open
+        handler = CommandHandler()
+        result = await handler.handle(f"/open {ctx.session.id}", ctx)
+        assert result is not EXIT
+        assert opened is True
+
+    async def test_open_missing_id(self, ctx: CommandContext) -> None:
+        handler = CommandHandler()
+        result = await handler.handle("/open", ctx)
+        assert result is not EXIT
+
+    async def test_open_invalid_id(self, ctx: CommandContext) -> None:
+        handler = CommandHandler()
+        result = await handler.handle("/open abc", ctx)
+        assert result is not EXIT
+
+    async def test_delete_session_command(self, ctx: CommandContext) -> None:
+        handler = CommandHandler()
+        result = await handler.handle(f"/delete-session {ctx.session.id}", ctx)
+        assert result is not EXIT
+
+    async def test_delete_session_missing_id(self, ctx: CommandContext) -> None:
+        handler = CommandHandler()
+        result = await handler.handle("/delete-session", ctx)
+        assert result is not EXIT

@@ -113,6 +113,15 @@ class ChatEngine:
         """Reset the conversation history."""
         self._messages.clear()
 
+    def load_messages(self, messages: list[BaseMessage]) -> None:
+        """Replace the in-memory conversation with *messages*.
+
+        Used by the TUI to restore history when reopening a saved session.
+        No database access — the caller is responsible for fetching and
+        converting stored messages to LangChain objects.
+        """
+        self._messages = list(messages)
+
     # ------------------------------------------------------------------
     # Properties
     # ------------------------------------------------------------------

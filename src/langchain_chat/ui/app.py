@@ -10,6 +10,8 @@ from __future__ import annotations
 import asyncio
 import signal
 
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+
 from langchain_chat.core.chat_engine import ChatEngine
 from langchain_chat.core.prompt_manager import PromptManager
 from langchain_chat.core.session_manager import SessionManager
@@ -176,12 +178,14 @@ class TuiChatApp:
         ctx = CommandContext(
             user_manager=self._user_manager,
             prompt_manager=self._prompt_manager,
+            session_manager=self._session_manager,
             engine=self._engine,
             view=self._view,
             current_user_name=self._user_name,
             session=self._session,
             on_user_change=self._on_user_change,
             on_preset_change=self._on_preset_change,
+            on_session_open=self._on_session_open,
         )
         result = await self._command_handler.handle(line, ctx)
         if result is EXIT:
@@ -241,6 +245,43 @@ class TuiChatApp:
         """Load a preset's content as the system prompt."""
         self._system_prompt = preset_info["content"]
         self._view.set_system_prompt_active(True)
+
+    async def _on_session_open(self, session_id: int) -> None:
+        """Reopen a historical session and restore conversation context.
+
+        If *session_id* is -1 (sentinel), a fresh session is created
+        instead (used when the current session was deleted).
+        """
+        if session_id == -1:
+            user = await self._user_manager.get_user_by_name(self._user_name)
+            self._session = await self._session_manager.create_session(
+                user.id, title=f"Chat with {self._user_name}"
+            )
+            self._engine.clear_memory()
+            self._view.show_info("Fresh session created.")
+            return
+
+        try:
+            session, messages = await self._session_manager.reopen_session(session_id)
+        except Exception as exc:
+            self._view.show_error(str(exc))
+            return
+
+        # Convert stored Message models → LangChain BaseMessage objects.
+        langchain_messages: list[BaseMessage] = []
+        for msg in messages:
+            if msg.role == "user":
+                langchain_messages.append(HumanMessage(content=msg.content))
+            elif msg.role == "assistant":
+                langchain_messages.append(AIMessage(content=msg.content))
+            elif msg.role == "system":
+                langchain_messages.append(SystemMessage(content=msg.content))
+
+        self._engine.load_messages(langchain_messages)
+        self._session = session
+        self._view.show_success(
+            f"Reopened session {session.id}: {session.title!r} ({len(messages)} messages restored)"
+        )
 
     # ------------------------------------------------------------------
     # Signal handling

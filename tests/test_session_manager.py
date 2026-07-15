@@ -1,4 +1,7 @@
-"""Tests for SessionManager — session & message persistence."""
+"""Tests for SessionManager — session & message persistence.
+
+Includes Step 8 enhancements: update, search, reopen.
+"""
 
 from __future__ import annotations
 
@@ -233,3 +236,129 @@ class TestIntegration:
         # Messages cascade-deleted with session (SQLite FK CASCADE)
         remaining = await session_manager.get_messages(session.id)
         assert remaining == []
+
+
+# ------------------------------------------------------------------
+# Step 8 — Update session tests
+# ------------------------------------------------------------------
+
+
+class TestUpdateSession:
+    """Tests for SessionManager.update_session()."""
+
+    async def test_rename_success(self, session_manager: SessionManager) -> None:
+        session = await session_manager.create_session(user_id=1, title="Old")
+        updated = await session_manager.update_session(session.id, "New Title")
+        assert updated.title == "New Title"
+        assert updated.id == session.id
+
+    async def test_rename_strips_whitespace(self, session_manager: SessionManager) -> None:
+        session = await session_manager.create_session(user_id=1, title="Old")
+        updated = await session_manager.update_session(session.id, "  Trimmed  ")
+        assert updated.title == "Trimmed"
+
+    async def test_rename_empty_title_raises(self, session_manager: SessionManager) -> None:
+        session = await session_manager.create_session(user_id=1, title="X")
+        with pytest.raises(ValueError, match="must not be empty"):
+            await session_manager.update_session(session.id, "   ")
+
+    async def test_rename_missing_session_raises(self, session_manager: SessionManager) -> None:
+        with pytest.raises(SessionNotFoundError, match="9999"):
+            await session_manager.update_session(9999, "X")
+
+
+# ------------------------------------------------------------------
+# Step 8 — Search sessions tests
+# ------------------------------------------------------------------
+
+
+class TestSearchSessions:
+    """Tests for SessionManager.search_sessions()."""
+
+    async def test_search_by_title(self, session_manager: SessionManager) -> None:
+        await session_manager.create_session(user_id=1, title="Project Alpha")
+        await session_manager.create_session(user_id=1, title="Project Beta")
+        await session_manager.create_session(user_id=1, title="Random")
+
+        results = await session_manager.search_sessions(1, "Project")
+        assert len(results) == 2
+
+    async def test_search_empty_query_returns_all(self, session_manager: SessionManager) -> None:
+        await session_manager.create_session(user_id=1, title="A")
+        await session_manager.create_session(user_id=1, title="B")
+        results = await session_manager.search_sessions(1, "")
+        assert len(results) == 2
+
+    async def test_search_no_match(self, session_manager: SessionManager) -> None:
+        await session_manager.create_session(user_id=1, title="Hello")
+        results = await session_manager.search_sessions(1, "zzz_nonexistent")
+        assert results == []
+
+    async def test_search_case_sensitive(self, session_manager: SessionManager) -> None:
+        await session_manager.create_session(user_id=1, title="UPPERCASE")
+        # SQLite LIKE is case-insensitive for ASCII by default
+        results = await session_manager.search_sessions(1, "upper")
+        assert len(results) == 1
+
+
+# ------------------------------------------------------------------
+# Step 8 — Search messages tests
+# ------------------------------------------------------------------
+
+
+class TestSearchMessages:
+    """Tests for SessionManager.search_messages()."""
+
+    async def test_search_message_content(self, session_manager: SessionManager) -> None:
+        session = await session_manager.create_session(user_id=1)
+        await session_manager.add_message(session.id, "user", "What is Python?")
+        await session_manager.add_message(session.id, "assistant", "Python is a language.")
+        await session_manager.add_message(session.id, "user", "Tell me about Java.")
+
+        results = await session_manager.search_messages(session.id, "Python")
+        assert len(results) == 2
+
+    async def test_search_no_match(self, session_manager: SessionManager) -> None:
+        session = await session_manager.create_session(user_id=1)
+        await session_manager.add_message(session.id, "user", "Hello")
+        results = await session_manager.search_messages(session.id, "zzz")
+        assert results == []
+
+    async def test_search_empty_query_returns_all(self, session_manager: SessionManager) -> None:
+        session = await session_manager.create_session(user_id=1)
+        await session_manager.add_message(session.id, "user", "A")
+        await session_manager.add_message(session.id, "assistant", "B")
+        results = await session_manager.search_messages(session.id, "")
+        assert len(results) == 2
+
+
+# ------------------------------------------------------------------
+# Step 8 — Reopen session tests
+# ------------------------------------------------------------------
+
+
+class TestReopenSession:
+    """Tests for SessionManager.reopen_session()."""
+
+    async def test_reopen_returns_session_and_messages(
+        self, session_manager: SessionManager
+    ) -> None:
+        session = await session_manager.create_session(user_id=1, title="Saved Chat")
+        await session_manager.add_message(session.id, "user", "Q1")
+        await session_manager.add_message(session.id, "assistant", "A1")
+
+        reopened, msgs = await session_manager.reopen_session(session.id)
+        assert reopened.id == session.id
+        assert reopened.title == "Saved Chat"
+        assert len(msgs) == 2
+        assert msgs[0].content == "Q1"
+        assert msgs[1].content == "A1"
+
+    async def test_reopen_missing_raises(self, session_manager: SessionManager) -> None:
+        with pytest.raises(SessionNotFoundError, match="9999"):
+            await session_manager.reopen_session(9999)
+
+    async def test_reopen_empty_session(self, session_manager: SessionManager) -> None:
+        session = await session_manager.create_session(user_id=1, title="Empty")
+        _, msgs = await session_manager.reopen_session(session.id)
+        assert msgs == []

@@ -135,6 +135,37 @@ class SQLiteBackend(StorageBackend):
         await self._db.commit()
         return cursor.rowcount > 0
 
+    async def update_session(self, session_id: int, title: str) -> dict[str, Any]:
+        cursor = await self._db.execute(
+            "UPDATE sessions SET title = ?, updated_at = datetime('now') WHERE id = ?",
+            (title, session_id),
+        )
+        await self._db.commit()
+        if cursor.rowcount == 0:
+            raise ValueError(f"Session id={session_id} not found")
+        row = await self._db.execute(
+            "SELECT id, user_id, preset_id, title, created_at, updated_at "
+            "FROM sessions WHERE id = ?",
+            (session_id,),
+        )
+        return dict(await row.fetchone())
+
+    async def search_sessions(self, user_id: int, query: str) -> list[dict[str, Any]]:
+        cursor = await self._db.execute(
+            "SELECT id, user_id, preset_id, title, created_at, updated_at "
+            "FROM sessions WHERE user_id = ? AND title LIKE ? ORDER BY updated_at DESC",
+            (user_id, f"%{query}%"),
+        )
+        return [dict(row) for row in await cursor.fetchall()]
+
+    async def search_messages(self, session_id: int, query: str) -> list[dict[str, Any]]:
+        cursor = await self._db.execute(
+            "SELECT id, session_id, role, content, created_at FROM messages "
+            "WHERE session_id = ? AND content LIKE ? ORDER BY created_at ASC",
+            (session_id, f"%{query}%"),
+        )
+        return [dict(row) for row in await cursor.fetchall()]
+
     # ------------------------------------------------------------------
     # Message operations
     # ------------------------------------------------------------------
@@ -143,6 +174,11 @@ class SQLiteBackend(StorageBackend):
         cursor = await self._db.execute(
             "INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)",
             (session_id, role, content),
+        )
+        # Bump session updated_at so "recent sessions" list stays accurate.
+        await self._db.execute(
+            "UPDATE sessions SET updated_at = datetime('now') WHERE id = ?",
+            (session_id,),
         )
         await self._db.commit()
         row = await self._db.execute(

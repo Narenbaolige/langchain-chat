@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pytest
 from fakes import FakeModel  # noqa: F401 — used in type annotations
+from langchain_core.messages import AIMessage, HumanMessage
 
 from langchain_chat.core.chat_engine import ChatEngine, ChatResponse
 from langchain_chat.core.config_models import LLMConfig
@@ -164,3 +165,51 @@ class TestIntegration:
 
         assert "".join(collected) == "Hi!"
         assert engine.message_count == 2
+
+
+# ------------------------------------------------------------------
+# Step 8 — load_messages tests
+# ------------------------------------------------------------------
+
+
+class TestLoadMessages:
+    """Tests for ChatEngine.load_messages()."""
+
+    async def test_load_messages_replaces_memory(self, llm_config: LLMConfig) -> None:
+        engine = ChatEngine(llm_config, model=FakeModel(response="OK"))
+
+        history = [
+            HumanMessage(content="Old Q1"),
+            AIMessage(content="Old A1"),
+            HumanMessage(content="Old Q2"),
+            AIMessage(content="Old A2"),
+        ]
+        engine.load_messages(history)
+        assert engine.message_count == 4
+
+    async def test_load_messages_overwrites_previous(self, llm_config: LLMConfig) -> None:
+        engine = ChatEngine(llm_config, model=FakeModel(response="OK"))
+        await engine.chat("Hello")
+        assert engine.message_count == 2
+
+        # Overwrite with history
+        history = [HumanMessage(content="History Q"), AIMessage(content="History A")]
+        engine.load_messages(history)
+        assert engine.message_count == 2
+
+    async def test_load_messages_then_chat(self, llm_config: LLMConfig) -> None:
+        engine = ChatEngine(llm_config, model=FakeModel(response="New"))
+        engine.load_messages([HumanMessage(content="Prior"), AIMessage(content="Prior A")])
+        assert engine.message_count == 2
+
+        # New message appended to loaded history
+        resp = await engine.chat("New Q")
+        assert engine.message_count == 4  # Prior Q, Prior A, New user, New AI
+        assert resp.content == "New"
+
+    async def test_load_empty_messages(self, llm_config: LLMConfig) -> None:
+        engine = ChatEngine(llm_config, model=FakeModel())
+        await engine.chat("Hello")
+        assert engine.message_count == 2
+        engine.load_messages([])
+        assert engine.message_count == 0

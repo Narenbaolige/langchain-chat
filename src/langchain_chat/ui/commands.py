@@ -11,6 +11,7 @@ from typing import Any, Callable, Coroutine
 
 from langchain_chat.core.chat_engine import ChatEngine
 from langchain_chat.core.prompt_manager import PromptManager
+from langchain_chat.core.session_manager import SessionManager
 from langchain_chat.core.user_manager import UserManager
 from langchain_chat.models.session import Session
 from langchain_chat.ui.chat_view import ChatView
@@ -43,6 +44,7 @@ class CommandContext:
 
     user_manager: UserManager
     prompt_manager: PromptManager
+    session_manager: SessionManager
     engine: ChatEngine
     view: ChatView
     current_user_name: str
@@ -51,6 +53,7 @@ class CommandContext:
     # Callbacks for state changes the app needs to know about.
     on_user_change: Callable[[str], Coroutine[Any, Any, None]] | None = None
     on_preset_change: Callable[[dict], Coroutine[Any, Any, None]] | None = None
+    on_session_open: Callable[[int], Coroutine[Any, Any, None]] | None = None
 
 
 # ------------------------------------------------------------------
@@ -240,6 +243,117 @@ async def _cmd_stats(ctx: CommandContext, args: str) -> ActionResult:
     return CONTINUE
 
 
+# ------------------------------------------------------------------
+# Step 8 — session management commands
+# ------------------------------------------------------------------
+
+
+async def _cmd_sessions(ctx: CommandContext, _args: str) -> ActionResult:
+    """List recent sessions for the current user."""
+    user = await ctx.user_manager.get_user_by_name(ctx.current_user_name)
+    sessions = await ctx.session_manager.list_sessions(user_id=user.id)
+    if not sessions:
+        ctx.view.show_info("No sessions found.")
+        return CONTINUE
+
+    session_dicts = [
+        {
+            "id": s.id,
+            "username": ctx.current_user_name,
+            "title": s.title,
+            "created_at": str(s.created_at),
+            "updated_at": str(s.updated_at),
+        }
+        for s in sessions
+    ]
+    # Reuse show_users table for sessions display (abusing a bit, but works).
+    ctx.view.show_sessions(session_dicts)
+    return CONTINUE
+
+
+async def _cmd_search(ctx: CommandContext, args: str) -> ActionResult:
+    """Search session titles."""
+    query = args.strip()
+    if not query:
+        ctx.view.show_error("Usage: /search <query>")
+        return CONTINUE
+    user = await ctx.user_manager.get_user_by_name(ctx.current_user_name)
+    sessions = await ctx.session_manager.search_sessions(user.id, query)
+    if not sessions:
+        ctx.view.show_info(f"No sessions matching {query!r}.")
+        return CONTINUE
+    session_dicts = [
+        {
+            "id": s.id,
+            "username": ctx.current_user_name,
+            "title": s.title,
+            "created_at": str(s.created_at),
+            "updated_at": str(s.updated_at),
+        }
+        for s in sessions
+    ]
+    ctx.view.show_sessions(session_dicts)
+    return CONTINUE
+
+
+async def _cmd_rename(ctx: CommandContext, args: str) -> ActionResult:
+    """Rename the current session."""
+    new_title = args.strip()
+    if not new_title:
+        ctx.view.show_error("Usage: /rename <new title>")
+        return CONTINUE
+    if ctx.session is None:
+        ctx.view.show_error("No active session.")
+        return CONTINUE
+    try:
+        updated = await ctx.session_manager.update_session(ctx.session.id, new_title)
+        ctx.view.show_success(f"Session renamed to: {updated.title}")
+    except Exception as exc:
+        ctx.view.show_error(str(exc))
+    return CONTINUE
+
+
+async def _cmd_open(ctx: CommandContext, args: str) -> ActionResult:
+    """Reopen a historical session by ID."""
+    sid_str = args.strip()
+    if not sid_str:
+        ctx.view.show_error("Usage: /open <session_id>")
+        return CONTINUE
+    try:
+        sid = int(sid_str)
+    except ValueError:
+        ctx.view.show_error(f"Invalid session ID: {sid_str!r}")
+        return CONTINUE
+
+    if ctx.on_session_open:
+        await ctx.on_session_open(sid)
+    return CONTINUE
+
+
+async def _cmd_delete_session(ctx: CommandContext, args: str) -> ActionResult:
+    """Delete a session by ID."""
+    sid_str = args.strip()
+    if not sid_str:
+        ctx.view.show_error("Usage: /delete-session <session_id>")
+        return CONTINUE
+    try:
+        sid = int(sid_str)
+    except ValueError:
+        ctx.view.show_error(f"Invalid session ID: {sid_str!r}")
+        return CONTINUE
+
+    deleted = await ctx.session_manager.delete_session(sid)
+    if deleted:
+        ctx.view.show_success(f"Session {sid} deleted.")
+        if ctx.session and ctx.session.id == sid:
+            # Current session was deleted — create a fresh one.
+            if ctx.on_session_open:
+                await ctx.on_session_open(-1)  # signal to create new
+    else:
+        ctx.view.show_error(f"Session {sid} not found.")
+    return CONTINUE
+
+
 # Registry of all built-in commands.
 _BUILTIN_COMMANDS: dict[str, HandlerFunc] = {
     "help": _cmd_help,
@@ -252,4 +366,9 @@ _BUILTIN_COMMANDS: dict[str, HandlerFunc] = {
     "presets": _cmd_presets,
     "system": _cmd_system,
     "stats": _cmd_stats,
+    "sessions": _cmd_sessions,
+    "search": _cmd_search,
+    "rename": _cmd_rename,
+    "open": _cmd_open,
+    "delete-session": _cmd_delete_session,
 }

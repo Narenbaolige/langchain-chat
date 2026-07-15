@@ -136,6 +136,48 @@ class StorageBackend(ABC):
         """
         ...
 
+    @abstractmethod
+    async def update_session(self, session_id: int, title: str) -> dict[str, Any]:
+        """Rename a session (and bump its updated_at).
+
+        Args:
+            session_id: Session to rename.
+            title: New title.
+
+        Returns:
+            Updated session dict.
+
+        Raises:
+            The backend should raise if session_id does not exist.
+        """
+        ...
+
+    @abstractmethod
+    async def search_sessions(self, user_id: int, query: str) -> list[dict[str, Any]]:
+        """Search sessions by title substring for a given user.
+
+        Args:
+            user_id: Owner user ID.
+            query: Substring to match against session titles.
+
+        Returns:
+            List of matching session dicts, ordered by updated_at DESC.
+        """
+        ...
+
+    @abstractmethod
+    async def search_messages(self, session_id: int, query: str) -> list[dict[str, Any]]:
+        """Search messages by content substring within a session.
+
+        Args:
+            session_id: Session to search within.
+            query: Substring to match against message content.
+
+        Returns:
+            List of matching message dicts, ordered by created_at ASC.
+        """
+        ...
+
     # ------------------------------------------------------------------
     # Message operations
     # ------------------------------------------------------------------

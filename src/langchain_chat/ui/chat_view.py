@@ -95,6 +95,21 @@ class ChatView:
             table.add_row(str(i), str(u["id"]), u["username"], str(created))
         self.console.print(table)
 
+    def show_sessions(self, sessions: list[dict]) -> None:
+        """Display a numbered table of sessions."""
+        if not sessions:
+            self.show_info("No sessions found.")
+            return
+        table = Table(title="Sessions", border_style="cyan")
+        table.add_column("ID", style="dim")
+        table.add_column("Title")
+        table.add_column("Updated")
+        for s in sessions:
+            updated = s.get("updated_at", "") or ""
+            updated_short = updated.rsplit(".", 1)[0] if "." in str(updated) else str(updated)
+            table.add_row(str(s["id"]), s.get("title", ""), str(updated_short))
+        self.console.print(table)
+
     def show_presets(self, presets: list[dict]) -> None:
         """Display a numbered table of presets."""
         if not presets:
@@ -126,6 +141,11 @@ class ChatView:
             ("/presets", "List available presets"),
             ("/system <text>", "Set a raw system prompt"),
             ("/stats", "Show conversation statistics"),
+            ("/sessions", "List recent sessions (Step 8)"),
+            ("/search <query>", "Search sessions by title (Step 8)"),
+            ("/rename <title>", "Rename current session (Step 8)"),
+            ("/open <id>", "Reopen a historical session (Step 8)"),
+            ("/delete-session <id>", "Delete a session by ID (Step 8)"),
         ]
         for cmd, desc in commands:
             table.add_row(cmd, desc)

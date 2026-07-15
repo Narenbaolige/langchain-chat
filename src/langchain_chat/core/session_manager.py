@@ -90,6 +90,74 @@ class SessionManager:
         """
         return await self._storage.delete_session(session_id)
 
+    async def update_session(self, session_id: int, title: str) -> Session:
+        """Rename a session.
+
+        Args:
+            session_id: Session to rename.
+            title: New title (whitespace is stripped).
+
+        Returns:
+            The updated Session.
+
+        Raises:
+            SessionNotFoundError: If the session does not exist.
+        """
+        title = title.strip()
+        if not title:
+            raise ValueError("Session title must not be empty")
+        try:
+            data = await self._storage.update_session(session_id, title)
+        except ValueError as exc:
+            raise SessionNotFoundError(f"Session id={session_id} not found") from exc
+        return Session.model_validate(data)
+
+    async def search_sessions(self, user_id: int, query: str) -> list[Session]:
+        """Search sessions by title substring.
+
+        Args:
+            user_id: Owner user ID.
+            query: Substring to match (empty returns all sessions for user).
+
+        Returns:
+            List of matching Sessions, ordered by most recently updated.
+        """
+        if not query.strip():
+            return await self.list_sessions(user_id)
+        rows = await self._storage.search_sessions(user_id, query.strip())
+        return [Session.model_validate(r) for r in rows]
+
+    async def search_messages(self, session_id: int, query: str) -> list[Message]:
+        """Search messages by content substring within a session.
+
+        Args:
+            session_id: Session to search within.
+            query: Substring to match.
+
+        Returns:
+            List of matching Messages, ordered chronologically.
+        """
+        if not query.strip():
+            return await self.get_messages(session_id)
+        rows = await self._storage.search_messages(session_id, query.strip())
+        return [Message.model_validate(r) for r in rows]
+
+    async def reopen_session(self, session_id: int) -> tuple[Session, list[Message]]:
+        """Load a historical session with all its messages.
+
+        Used by the TUI to restore conversation context when switching
+        to a previously saved session.
+
+        Returns:
+            (session, messages) tuple.
+
+        Raises:
+            SessionNotFoundError: If the session does not exist.
+        """
+        session = await self.get_session(session_id)
+        messages = await self.get_messages(session_id)
+        return session, messages
+
     # ------------------------------------------------------------------
     # Message operations
     # ------------------------------------------------------------------
