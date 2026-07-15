@@ -32,11 +32,11 @@ UI Layer → Core Business Layer → Storage Layer → Database/File
 | 11 | MySQL Backend | ✅ v0.1.0-step11-mysql |
 | 12 | File Backend + Logging | ✅ v0.1.0-step12-file-logging |
 | 13 | Test system | ✅ v0.1.0-step13-testing |
-| 14 | Architecture audit + docs | 🔜 Current |
-| 15 | Multi-env configuration | ⬜ |
-| 16a | Security enhancement | ⬜ |
-| 16b | Code quality | ⬜ |
-| 17 | Git engineering | ⬜ |
+| 14 | Architecture audit + docs | ✅ v0.1.0-step14-audit-docs |
+| 15 | Multi-env configuration | ✅ v0.1.0-step15-multi-env |
+| 16a | Security enhancement | ✅ v0.1.0-step16a-security |
+| 16b | Code quality | ✅ v0.1.0-step16b-quality |
+| 17 | Git engineering | ✅ v0.1.0-step17-git-engineering |
 
 ## Engineering Rules
 

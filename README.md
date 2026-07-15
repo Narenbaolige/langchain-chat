@@ -112,6 +112,31 @@ ruff format .             # Format
 - [Development Guide](docs/development.md)
 - [Roadmap](docs/roadmap.md)
 
+## Project Status
+
+18 milestones completed. See [CHANGELOG.md](CHANGELOG.md) for full history.
+
+| Step | Tag | Feature |
+|------|-----|---------|
+| 1 | `v0.1.0-step1-init` | Project initialization |
+| 2 | `v0.1.0-step2-config` | Configuration management |
+| 3 | `v0.1.0-step3-storage` | SQLite storage backend |
+| 4 | `v0.1.0-step4-user` | User management |
+| 5 | `v0.1.0-step5-prompt` | Prompt presets |
+| 6 | `v0.1.0-step6-chat-engine` | Chat engine (LangChain) |
+| 7 | `v0.1.0-step7-tui` | TUI chat |
+| 8 | `v0.1.0-step8-session-enhance` | Session management |
+| 9 | `v0.1.0-step9-tui-polish` | UX optimization |
+| 10 | `v0.1.0-step10-model-manager` | Multi-provider models |
+| 11 | `v0.1.0-step11-mysql` | MySQL backend |
+| 12 | `v0.1.0-step12-file-logging` | File backend + logging |
+| 13 | `v0.1.0-step13-testing` | Test system |
+| 14 | `v0.1.0-step14-audit-docs` | Architecture audit + docs |
+| 15 | `v0.1.0-step15-multi-env` | Multi-environment config |
+| 16a | `v0.1.0-step16a-security` | Security hardening |
+| 16b | `v0.1.0-step16b-quality` | Code quality + pagination |
+| 17 | `v0.1.0-step17-git-engineering` | Git engineering |
+
 ## License
 
 MIT
