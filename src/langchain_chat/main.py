@@ -74,7 +74,15 @@ async def _async_tui() -> None:
         model_manager = ModelManager(config.llm)
         engine = ChatEngine(model=model_manager.get_current_model())
 
-        app = TuiChatApp(user_manager, prompt_manager, session_manager, model_manager, engine)
+        app = TuiChatApp(
+            user_manager,
+            prompt_manager,
+            session_manager,
+            model_manager,
+            engine,
+            max_input_length=config.security.max_input_length,
+            context_max_tokens=config.security.context_max_tokens,
+        )
         await app.run()
 
     finally:

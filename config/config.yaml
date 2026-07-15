@@ -44,3 +44,7 @@ logging:
   level: INFO
   format: "%(asctime)s [%(levelname)-7s] %(name)s: %(message)s"
   file: logs/app.log
+
+security:
+  max_input_length: 5000
+  context_max_tokens: 4000

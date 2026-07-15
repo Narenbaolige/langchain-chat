@@ -56,6 +56,13 @@ class LLMConfig(BaseModel):
     models: dict[str, list[str]] = Field(default_factory=dict)
 
 
+class SecurityConfig(BaseModel):
+    """Security-related configuration (Step 16a)."""
+
+    max_input_length: int = 5000
+    context_max_tokens: int = 4000
+
+
 class LoggingConfig(BaseModel):
     """Logging configuration."""
 
@@ -70,3 +77,4 @@ class ProjectConfig(BaseModel):
     storage: StorageConfig = Field(default_factory=StorageConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    security: SecurityConfig = Field(default_factory=SecurityConfig)

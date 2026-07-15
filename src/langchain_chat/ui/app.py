@@ -47,6 +47,8 @@ class TuiChatApp:
         engine: ChatEngine,
         *,
         view: ChatView | None = None,
+        max_input_length: int = 5000,
+        context_max_tokens: int = 4000,
     ) -> None:
         self._user_manager = user_manager
         self._prompt_manager = prompt_manager
@@ -54,6 +56,8 @@ class TuiChatApp:
         self._model_manager = model_manager
         self._engine = engine
         self._view = view or ChatView()
+        self._max_input_length = max_input_length
+        self._context_max_tokens = context_max_tokens
 
         # Mutable state
         self._running: bool = False
@@ -216,13 +220,22 @@ class TuiChatApp:
         reply are saved via SessionManager so every conversation turn is
         durable from Step 7 onward.
         """
+        # Input length check (Step 16a).
+        if len(message) > self._max_input_length:
+            self._view.show_error(
+                f"Input too long ({len(message)} chars). Maximum: {self._max_input_length}"
+            )
+            return
+
         self._view.show_user_message(message)
 
-        # Stream response token by token.
+        # Stream response token by token, with context trimming.
         full_response = ""
         try:
             self._view.show_assistant_prefix()
-            async for token in self._engine.stream_chat(message, self._system_prompt):
+            async for token in self._engine.stream_chat(
+                message, self._system_prompt, max_tokens=self._context_max_tokens
+            ):
                 if token:
                     full_response += token
                     self._view.stream_token(token)

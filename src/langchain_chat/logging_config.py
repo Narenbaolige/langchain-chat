@@ -12,6 +12,8 @@ import logging
 import sys
 from pathlib import Path
 
+from langchain_chat.core.json_formatter import JsonFormatter
+
 _configured: bool = False
 
 
@@ -20,6 +22,7 @@ def setup_logging(
     log_file: str | None = "logs/app.log",
     *,
     fmt: str | None = None,
+    use_json: bool = False,
 ) -> None:
     """Configure root and project loggers with console + file output.
 
@@ -36,10 +39,12 @@ def setup_logging(
         return
     _configured = True
 
-    if fmt is None:
-        fmt = "%(asctime)s [%(levelname)-7s] %(name)s: %(message)s"
-
-    formatter = logging.Formatter(fmt)
+    if use_json:
+        formatter = JsonFormatter()
+    else:
+        if fmt is None:
+            fmt = "%(asctime)s [%(levelname)-7s] %(name)s: %(message)s"
+        formatter = logging.Formatter(fmt)
 
     # Console handler.
     console = logging.StreamHandler(sys.stderr)

@@ -66,17 +66,22 @@ class ChatEngine:
         """
         self._model = model
 
-    async def chat(self, message: str, system_prompt: str | None = None) -> ChatResponse:
+    async def chat(
+        self, message: str, system_prompt: str | None = None, *, max_tokens: int = 0
+    ) -> ChatResponse:
         """Send a message and receive a complete response.
 
         Args:
             message: The user message.
             system_prompt: Optional system-level instruction.
+            max_tokens: If > 0, trim conversation context to this token limit.
 
         Returns:
             ChatResponse with content, token counts.
         """
         llm_messages = self._build_messages(message, system_prompt)
+        if max_tokens > 0:
+            llm_messages = self.trim_messages(llm_messages, max_tokens)
         response = await self.model.ainvoke(llm_messages)
 
         self._messages.append(HumanMessage(content=message))
@@ -91,18 +96,21 @@ class ChatEngine:
         )
 
     async def stream_chat(
-        self, message: str, system_prompt: str | None = None
+        self, message: str, system_prompt: str | None = None, *, max_tokens: int = 0
     ) -> AsyncIterator[str]:
         """Send a message and stream the response token by token.
 
         Args:
             message: The user message.
             system_prompt: Optional system-level instruction.
+            max_tokens: If > 0, trim conversation context to this token limit.
 
         Yields:
             Content chunks as they arrive from the model.
         """
         llm_messages = self._build_messages(message, system_prompt)
+        if max_tokens > 0:
+            llm_messages = self.trim_messages(llm_messages, max_tokens)
         full_content = ""
 
         async for chunk in self.model.astream(llm_messages):
@@ -126,6 +134,47 @@ class ChatEngine:
         converting stored messages to LangChain objects.
         """
         self._messages = list(messages)
+
+    def trim_messages(
+        self, messages: list[BaseMessage], max_tokens: int
+    ) -> list[BaseMessage]:
+        """Trim *messages* to fit within *max_tokens* using a sliding window.
+
+        Rules:
+        1. ``SystemMessage`` instances at the front are always kept.
+        2. From the end, accumulate estimated tokens until *max_tokens*.
+        3. Earlier non-system messages beyond the window are dropped.
+
+        Token estimation uses ``len(content) / 2`` as a rough heuristic
+        (reasonable for mixed Chinese / English text).
+        """
+        if not messages:
+            return []
+
+        # Separate system messages at the front.
+        system_msgs: list[BaseMessage] = []
+        body_start = 0
+        for m in messages:
+            if m.type == "system":
+                system_msgs.append(m)
+                body_start += 1
+            else:
+                break
+
+        body = messages[body_start:]
+        if not body:
+            return system_msgs
+
+        # Walk backwards, accumulating estimated tokens.
+        kept: list[BaseMessage] = []
+        total = 0
+        for m in reversed(body):
+            total += self._estimate_tokens(m)
+            if total > max_tokens and kept:  # keep at least one message
+                break
+            kept.insert(0, m)
+
+        return system_msgs + kept
 
     # ------------------------------------------------------------------
     # Properties
@@ -163,6 +212,15 @@ class ChatEngine:
         result.extend(self._messages)
         result.append(HumanMessage(content=message))
         return result
+
+    @staticmethod
+    def _estimate_tokens(msg: BaseMessage) -> int:
+        """Rough token count: ``len(content) / 2``.
+
+        Works reasonably for mixed Chinese / English text where ~2 chars ≈ 1 token.
+        """
+        content = getattr(msg, "content", "") or ""
+        return max(1, len(content) // 2)
 
 
 def _extract_usage(response: Any) -> dict[str, int]:

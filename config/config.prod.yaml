@@ -19,3 +19,7 @@ storage:
 
 logging:
   level: INFO
+
+security:
+  max_input_length: 10000
+  context_max_tokens: 8000
