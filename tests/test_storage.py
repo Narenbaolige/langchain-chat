@@ -301,3 +301,82 @@ class TestStorageBackendInterface:
             await be.delete_user(uid)
         finally:
             await be.close()
+
+
+# ------------------------------------------------------------------
+# Edge case & error tests
+# ------------------------------------------------------------------
+
+
+class TestStorageEdgeCases:
+    """Boundary and error conditions for SQLiteBackend."""
+
+    async def test_not_initialized_raises(self) -> None:
+        be = SQLiteBackend(StorageConfig(type="sqlite", database=":memory:"))
+        with pytest.raises(RuntimeError, match="not initialized"):
+            await be.create_user("test")
+
+    async def test_double_initialize_is_safe(self) -> None:
+        config = StorageConfig(type="sqlite", database=":memory:")
+        be = SQLiteBackend(config)
+        await be.initialize()
+        await be.initialize()  # idempotent
+        await be.close()
+
+    async def test_create_duplicate_user_raises_integrity(self) -> None:
+        config = StorageConfig(type="sqlite", database=":memory:")
+        be = SQLiteBackend(config)
+        await be.initialize()
+        try:
+            await be.create_user("unique_user")
+            with pytest.raises(Exception) as exc_info:
+                await be.create_user("unique_user")
+            assert "UNIQUE" in str(exc_info.value).upper() or "IntegrityError" in str(
+                type(exc_info.value)
+            )
+        finally:
+            await be.close()
+
+    async def test_create_session_nonexistent_user_fails(self) -> None:
+        config = StorageConfig(type="sqlite", database=":memory:")
+        be = SQLiteBackend(config)
+        await be.initialize()
+        try:
+            with pytest.raises(Exception) as exc_info:
+                await be.create_session(user_id=99999, title="Nope")
+            assert "FOREIGN KEY" in str(exc_info.value).upper() or "IntegrityError" in str(
+                type(exc_info.value)
+            )
+        finally:
+            await be.close()
+
+    async def test_update_session_missing_raises(self) -> None:
+        config = StorageConfig(type="sqlite", database=":memory:")
+        be = SQLiteBackend(config)
+        await be.initialize()
+        try:
+            with pytest.raises(ValueError, match="not found"):
+                await be.update_session(99999, "X")
+        finally:
+            await be.close()
+
+
+class TestFactoryEdgeCases:
+    """Additional factory edge cases."""
+
+    def test_factory_empty_type_raises(self) -> None:
+        with pytest.raises(ValueError, match="Unknown storage type"):
+            StorageFactory.create(StorageConfig(type=""))
+
+    def test_factory_whitespace_type_raises(self) -> None:
+        with pytest.raises(ValueError, match="Unknown storage type"):
+            StorageFactory.create(StorageConfig(type="   "))
+
+    def test_supported_types_in_error_message(self) -> None:
+        try:
+            StorageFactory.create(StorageConfig(type="unknown_db"))
+        except ValueError as exc:
+            msg = str(exc)
+            assert "sqlite" in msg
+            assert "mysql" in msg
+            assert "file" in msg

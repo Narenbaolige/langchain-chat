@@ -340,3 +340,94 @@ class TestChatView:
         """Smoke test — welcome with session context."""
         view = ChatView()
         view.show_welcome("testuser", session_id=42, system_prompt=True)
+
+
+# ------------------------------------------------------------------
+# Edge case tests
+# ------------------------------------------------------------------
+
+
+class TestCommandHandlerEdgeCases:
+    """Edge cases for command parsing and dispatch."""
+
+    def test_is_command_none(self) -> None:
+        handler = CommandHandler()
+        assert handler.is_command("") is False
+
+    def test_is_command_multiple_slashes(self) -> None:
+        handler = CommandHandler()
+        assert handler.is_command("//help") is True
+
+    def test_command_case_insensitive(self) -> None:
+        handler = CommandHandler()
+        assert handler.is_command("/HELP") is True
+
+    async def test_command_with_extra_whitespace(self) -> None:
+        """Commands with extra internal whitespace in args."""
+        config = StorageConfig(type="sqlite", database=":memory:")
+        backend = SQLiteBackend(config)
+        await backend.initialize()
+        try:
+            um = UserManager(backend)
+            pm = PromptManager(backend)
+            sm = SessionManager(backend)
+            mm = ModelManager(LLMConfig(model="gpt-4o-mini"))
+            await um.create_user("testuser")
+            session = await sm.create_session(1, title="Test")
+            engine = ChatEngine(model=FakeModel(response="OK"))
+            view = ChatView()
+
+            ctx = CommandContext(
+                user_manager=um,
+                prompt_manager=pm,
+                session_manager=sm,
+                model_manager=mm,
+                engine=engine,
+                view=view,
+                current_user_name="testuser",
+                session=session,
+            )
+            handler = CommandHandler()
+            # /system with multiple spaces in arg
+            result = await handler.handle("/system   You are helpful   ", ctx)
+            assert result is not EXIT
+        finally:
+            await backend.close()
+
+
+class TestChatViewEdgeCases:
+    """Edge cases for ChatView display methods."""
+
+    def test_show_users_empty_list(self) -> None:
+        view = ChatView()
+        view.show_users([])
+
+    def test_show_presets_empty_list(self) -> None:
+        view = ChatView()
+        view.show_presets([])
+
+    def test_build_prompt_empty_model(self) -> None:
+        view = ChatView()
+        prompt = view.build_prompt("alice", session_id=1, model_name="")
+        assert "alice" in prompt
+        assert "1" in prompt
+
+    def test_build_prompt_all_fields(self) -> None:
+        view = ChatView()
+        view.set_system_prompt_active(True)
+        prompt = view.build_prompt("alice", session_id=5, model_name="gpt-4o")
+        assert "alice" in prompt
+        assert "5" in prompt
+        assert "gpt-4o" in prompt
+        assert "⚡" in prompt
+
+    def test_show_welcome_all_params(self) -> None:
+        view = ChatView()
+        view.show_welcome(
+            "u", session_id=1, system_prompt=True, provider="openai", model="gpt-4o-mini"
+        )
+
+    def test_show_stats_active_prompt(self) -> None:
+        view = ChatView()
+        view.set_system_prompt_active(True)
+        view.show_stats(10, 1, "user")

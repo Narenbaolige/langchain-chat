@@ -362,3 +362,43 @@ class TestReopenSession:
         session = await session_manager.create_session(user_id=1, title="Empty")
         _, msgs = await session_manager.reopen_session(session.id)
         assert msgs == []
+
+
+# ------------------------------------------------------------------
+# Edge case tests
+# ------------------------------------------------------------------
+
+
+class TestSessionManagerEdgeCases:
+    """Boundary and error scenarios for sessions and messages."""
+
+    async def test_search_sessions_special_chars(self, session_manager: SessionManager) -> None:
+        await session_manager.create_session(user_id=1, title="test@#$%")
+        results = await session_manager.search_sessions(1, "@#$")
+        assert len(results) == 1
+
+    async def test_search_messages_special_chars(self, session_manager: SessionManager) -> None:
+        s = await session_manager.create_session(user_id=1)
+        await session_manager.add_message(s.id, "user", "contains @#$% specials")
+        results = await session_manager.search_messages(s.id, "@#$%")
+        assert len(results) == 1
+
+    async def test_update_session_same_title(self, session_manager: SessionManager) -> None:
+        s = await session_manager.create_session(user_id=1, title="Same")
+        updated = await session_manager.update_session(s.id, "Same")
+        assert updated.title == "Same"
+
+    async def test_add_message_invalid_role_empty(self, session_manager: SessionManager) -> None:
+        s = await session_manager.create_session(user_id=1)
+        with pytest.raises(ValueError, match="Invalid role"):
+            await session_manager.add_message(s.id, "", "content")
+
+    async def test_add_message_very_long_content(self, session_manager: SessionManager) -> None:
+        s = await session_manager.create_session(user_id=1)
+        long_text = "x" * 10000
+        msg = await session_manager.add_message(s.id, "user", long_text)
+        assert len(msg.content) == 10000
+
+    async def test_get_messages_non_existent_session(self, session_manager: SessionManager) -> None:
+        msgs = await session_manager.get_messages(9999)
+        assert msgs == []

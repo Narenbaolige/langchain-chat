@@ -216,3 +216,55 @@ class TestLoadMessages:
         assert engine.message_count == 2
         engine.load_messages([])
         assert engine.message_count == 0
+
+
+# ------------------------------------------------------------------
+# Edge case & error tests
+# ------------------------------------------------------------------
+
+
+class TestChatEngineErrors:
+    """Edge cases and error conditions."""
+
+    def test_no_model_raises(self) -> None:
+        engine = ChatEngine()
+        with pytest.raises(RuntimeError, match="No model configured"):
+            _ = engine.model
+
+    async def test_no_model_raises_async(self) -> None:
+        engine = ChatEngine()
+        with pytest.raises(RuntimeError, match="No model configured"):
+            await engine.chat("hello")
+
+    async def test_chat_empty_message(self, engine: ChatEngine) -> None:
+        """Empty user message should still work (model decides handling)."""
+        resp = await engine.chat("")
+        assert isinstance(resp, ChatResponse)
+
+    async def test_stream_empty_message(self, engine: ChatEngine) -> None:
+        tokens: list[str] = []
+        async for t in engine.stream_chat(""):
+            tokens.append(t)
+        # Should complete without error; FakeModel returns its default response
+        assert engine.message_count == 2
+
+    async def test_chat_with_only_whitespace(self, engine: ChatEngine) -> None:
+        resp = await engine.chat("   ")
+        assert isinstance(resp, ChatResponse)
+
+    async def test_long_message(self, engine: ChatEngine) -> None:
+        long_msg = "Hello " * 500
+        resp = await engine.chat(long_msg)
+        assert isinstance(resp, ChatResponse)
+
+    async def test_system_prompt_preserved_in_memory(self, engine: ChatEngine) -> None:
+        """System prompt goes to the model but not into conversation memory."""
+        await engine.chat("Q", system_prompt="You are helpful.")
+        # Memory has 2 messages: Human(Q) + AI(response), NOT the system prompt
+        assert engine.message_count == 2
+
+    def test_set_model_clears_previous(self, fake_model: FakeModel) -> None:
+        engine = ChatEngine(model=fake_model)
+        new_model = FakeModel(response="New")
+        engine.set_model(new_model)
+        assert engine.model is new_model

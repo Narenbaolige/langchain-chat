@@ -175,3 +175,50 @@ class TestIntegration:
         # Verify gone
         with pytest.raises(UserNotFoundError):
             await manager.get_user(u1.id)
+
+
+# ------------------------------------------------------------------
+# Edge case tests
+# ------------------------------------------------------------------
+
+
+class TestUserManagerEdgeCases:
+    """Boundary and error scenarios."""
+
+    async def test_create_user_special_characters(self, manager: UserManager) -> None:
+        user = await manager.create_user("user@domain.com")
+        assert user.username == "user@domain.com"
+        user2 = await manager.create_user("test_user-123")
+        assert user2.username == "test_user-123"
+
+    async def test_create_user_unicode(self, manager: UserManager) -> None:
+        user = await manager.create_user("用户")
+        assert user.username == "用户"
+
+    async def test_create_user_max_length(self, manager: UserManager) -> None:
+        name = "a" * 128
+        user = await manager.create_user(name)
+        assert len(user.username) == 128
+
+    async def test_get_user_by_name_case_sensitive(self, manager: UserManager) -> None:
+        """Username lookup is exact (case-sensitive)."""
+        await manager.create_user("Alice")
+        with pytest.raises(UserNotFoundError):
+            await manager.get_user_by_name("alice")
+
+    async def test_delete_then_recreate(self, manager: UserManager) -> None:
+        u = await manager.create_user("recreate")
+        await manager.delete_user(u.id)
+        # Recreating the same username should succeed
+        u2 = await manager.create_user("recreate")
+        assert u2.id != u.id
+
+    async def test_list_users_empty(self, manager: UserManager) -> None:
+        users = await manager.list_users()
+        assert users == []
+
+    async def test_multiple_rapid_creates(self, manager: UserManager) -> None:
+        for i in range(10):
+            await manager.create_user(f"user_{i}")
+        users = await manager.list_users()
+        assert len(users) == 10
