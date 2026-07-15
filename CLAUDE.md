@@ -4,63 +4,73 @@ Enterprise-grade AI ChatBot framework based on LangChain.
 
 ## Architecture
 
-Strict layered architecture:
-
 ```
 UI Layer → Core Business Layer → Storage Layer → Database/File
 ```
 
 - UI never touches database directly
-- Storage is accessed through abstract `StorageBackend` interface
-- Dependencies flow one direction: upper depends on lower, never reverse
+- Storage is accessed through abstract `StorageBackend` interface (ABC, 23 methods)
+- Three backends: SQLiteBackend, MySQLBackend, FileBackend
+- Multi-provider: OpenAIProvider, DeepSeekProvider, OpenRouterProvider
+- Model injection: ChatEngine receives model via `set_model()`, does not own lifecycle
+- ModelManager owns provider registry + model switching
 
-## 15-Step Roadmap
+## Project Status — Step 13 (Current)
 
 | Step | Scope | Status |
 |------|-------|--------|
-| 1 | Project initialization | ✅ Done |
-| 2 | Configuration management | ✅ Done |
-| 3 | Storage abstraction + SQLite | 🔜 Next |
-| 4 | User system | ⬜ |
-| 5 | Prompt system | ⬜ |
-| 6 | Chat Engine (LangChain) | ⬜ |
-| 7 | TUI chat | ⬜ |
-| 8 | Session enhancements | ⬜ |
-| 9 | UX optimization | ⬜ |
-| 10 | Model management | ⬜ |
-| 11 | MySQL Backend | ⬜ |
-| 12 | File Backend + Logging | ⬜ |
-| 13 | Test system | ⬜ |
-| 14 | Documentation + API stubs | ⬜ |
-| 15 | dev/test/prod multi-env | ⬜ |
+| 1 | Project initialization | ✅ v0.1.0-step1-init |
+| 2 | Configuration management | ✅ v0.1.0-step2-config |
+| 3 | Storage abstraction + SQLite | ✅ v0.1.0-step3-storage |
+| 4 | User system | ✅ v0.1.0-step4-user |
+| 5 | Prompt system | ✅ v0.1.0-step5-prompt |
+| 6 | Chat Engine (LangChain) | ✅ v0.1.0-step6-chat-engine |
+| 7 | TUI chat | ✅ v0.1.0-step7-tui |
+| 8 | Session enhancements | ✅ v0.1.0-step8-session-enhance |
+| 9 | UX optimization | ✅ v0.1.0-step9-tui-polish |
+| 10 | Model management | ✅ v0.1.0-step10-model-manager |
+| 11 | MySQL Backend | ✅ v0.1.0-step11-mysql |
+| 12 | File Backend + Logging | ✅ v0.1.0-step12-file-logging |
+| 13 | Test system | ✅ v0.1.0-step13-testing |
+| 14 | Architecture audit + docs | 🔜 Current |
+| 15 | Multi-env configuration | ⬜ |
+| 16a | Security enhancement | ⬜ |
+| 16b | Code quality | ⬜ |
+| 17 | Git engineering | ⬜ |
 
-## Key Rules
+## Engineering Rules
 
 1. Each Step is self-contained — never implement features from future Steps
-2. Every Step ends with: working code + pytest pass + ruff pass + git commit + git tag
-3. Commit format: `feat: stepN <description>` (Step1 used `chore:`)
+2. Every Step ends with: pytest pass + ruff pass + git commit + git tag
+3. Commit format: `feat: stepN <description>`
 4. Tag format: `v0.1.0-stepN-<slug>`
-5. MVP and incremental — no premature design for unused features
+5. Minimum change principle — don't refactor for its own sake
 6. Type hints on all public APIs
+7. Backward compatible within the same major version
 
-## Completed Steps
+## Key Design Rules (Do Not Break)
 
-### Step1 — Project Init
-- Tag: `v0.1.0-step1-init`
-- Dependencies: pydantic, pyyaml, python-dotenv (runtime); pytest, pytest-asyncio, ruff (dev)
-- No LangChain deps yet (deferred to Step6)
+- UI → Core → Storage ABC → DB (strict one-way)
+- ChatEngine: chat/stream/memory/token only — no model creation or DB access
+- ModelManager: provider/model lifecycle — no chat logic
+- ChatEngine receives model via `set_model()` — never creates ChatOpenAI
+- All Core managers depend on `StorageBackend` (ABC), never concrete backends
+- `get_current_model()` returns fresh instance every call (no caching)
+- Messages persisted immediately after each chat turn
 
-### Step2 — Config Management
-- Tag: `v0.1.0-step2-config`
-- ConfigManager loads YAML + .env → Pydantic-validated ProjectConfig
-- Config models: AppConfig, StorageConfig, LLMConfig, LoggingConfig
-- Config files: `config/config.yaml`, `config/logging.yaml`, `config/.env.example`
-- Module-level convenience: `get_config_manager()`, `get_config()`
-
-## Testing & Linting
+## Testing
 
 ```bash
-pytest          # Run all tests
-ruff check .    # Lint
-ruff format .   # Format
+pytest                    # 269 tests
+ruff check .              # Lint
+ruff format .             # Format
 ```
+
+Tests never require: real API keys, MySQL server, network access.
+
+## Documentation
+
+- [Architecture Freeze](docs/architecture-freeze-v0.1.0-step13.md) — baseline for Step14-17
+- [Architecture](docs/architecture.md)
+- [Development Guide](docs/development.md)
+- [Roadmap](docs/roadmap.md)
