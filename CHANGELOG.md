@@ -2,6 +2,26 @@
 
 All notable changes to langchain-chat.
 
+## [v0.1.0-step18-chatanywhere] — 2026-07-15
+
+### Added
+- ChatAnywhereProvider: 4th built-in provider (free API via chatanywhere proxy)
+- Default provider switched to `chatanywhere` in config.yaml
+- `.env` with free API key (gitignored), `.env.example` template
+- Lazy MySQL import: `aiomysql` only loaded when MySQL backend is used
+
+### Changed
+- Default `__main__` now launches TUI (`main_tui()`) instead of bootstrap demo
+- `.env` loading uses `override=True` for project-root variables
+
+## [v0.1.0-step17-git-engineering] — 2026-07-15
+
+### Added
+- Git tag conventions (`v0.1.0-stepN-<slug>`)
+- Commit format enforcement (`feat:` / `fix:` / `docs:` / `chore:`)
+- `.gitignore` coverage: `.env`, `__pycache__`, `.pytest_cache`, `*.db`, `dist/`
+- Git hooks placeholders for pre-commit lint + pre-push test
+
 ## [v0.1.0-step16b-quality] — 2026-07-15
 
 ### Added

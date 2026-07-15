@@ -2,7 +2,7 @@
 
 **Baseline**: `v0.1.0-step13-testing`  
 **Date**: 2026-07-15  
-**Purpose**: Step14–17 开发基线，冻结当前架构契约。
+**Purpose**: Step14–18 开发基线，冻结当前架构契约。
 
 ---
 
@@ -289,7 +289,7 @@ class MyFeatureConfig(BaseModel):
 
 ---
 
-## 6. Step14–17 演进路线
+## 6. Step14–18 演进路线
 
 ### Step14: 架构审计 + 文档
 
@@ -341,4 +341,4 @@ class MyFeatureConfig(BaseModel):
 
 **冻结版本**: `v0.1.0-step13-testing`  
 **冻结时间**: 2026-07-15  
-**下次复审**: Step14 完成后
+**下次复审**: Step18 完成后

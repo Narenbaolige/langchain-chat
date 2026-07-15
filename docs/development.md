@@ -33,7 +33,7 @@ langchain-chat-tui
 ## Testing
 
 ```bash
-pytest                          # All 269 tests
+pytest                          # All 313 tests
 pytest tests/test_storage.py    # Single file
 pytest -v                       # Verbose
 ```
