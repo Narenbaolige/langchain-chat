@@ -1,0 +1,11 @@
+# ==========================================
+# langchain-chat — Development Overrides
+# Merged on top of config.yaml when APP_ENV=dev
+# ==========================================
+
+app:
+  env: dev
+  debug: true
+
+logging:
+  level: DEBUG

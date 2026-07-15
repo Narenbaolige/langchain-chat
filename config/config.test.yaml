@@ -1,0 +1,16 @@
+# ==========================================
+# langchain-chat — Testing Overrides
+# Merged on top of config.yaml when APP_ENV=test
+# ==========================================
+
+app:
+  env: test
+  debug: false
+
+storage:
+  type: sqlite
+  database: ":memory:"
+
+logging:
+  level: WARNING
+  file: null
