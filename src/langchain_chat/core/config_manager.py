@@ -104,11 +104,16 @@ class ConfigManager:
     # ------------------------------------------------------------------
 
     def _load_dotenv(self) -> None:
-        """Load ``.env`` file from the project root."""
+        """Load ``.env`` file from the project root.
+
+        The project-root ``.env`` is loaded with ``override=True`` so its
+        values always take precedence.  A subsequent cwd ``.env`` is loaded
+        as a non-overriding fallback.
+        """
         env_path = self._project_root / ".env"
         if env_path.exists():
-            load_dotenv(dotenv_path=str(env_path))
-        # Also load from cwd as fallback
+            load_dotenv(dotenv_path=str(env_path), override=True)
+        # Also load from cwd as non-overriding fallback
         load_dotenv(override=False)
 
     def _load_yaml(self, filename: str, *, required: bool = False) -> dict[str, Any]:

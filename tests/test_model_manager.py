@@ -8,6 +8,7 @@ from langchain_chat.core.config_models import LLMConfig
 from langchain_chat.core.model_manager import ModelManager, ModelNotFoundError
 from langchain_chat.core.provider import (
     BaseProvider,
+    ChatAnywhereProvider,
     DeepSeekProvider,
     OpenAIProvider,
     OpenRouterProvider,
@@ -42,11 +43,24 @@ class TestProviders:
         assert p.api_key_env == "OPENROUTER_API_KEY"
         assert p.default_model == "openai/gpt-4o-mini"
 
+    def test_chatanywhere_provider_metadata(self) -> None:
+        p = ChatAnywhereProvider()
+        assert p.name == "chatanywhere"
+        assert p.base_url == "https://api.chatanywhere.tech/v1"
+        assert p.api_key_env == "OPENAI_API_KEY"
+        assert p.default_model == "gpt-4o-mini-ca"
+
     def test_all_providers_extend_base(self) -> None:
-        for cls in [OpenAIProvider, DeepSeekProvider, OpenRouterProvider]:
+        for cls in [
+            OpenAIProvider,
+            DeepSeekProvider,
+            OpenRouterProvider,
+            ChatAnywhereProvider,
+        ]:
             assert issubclass(cls, BaseProvider)
 
-    def test_create_model_returns_value(self) -> None:
+    def test_create_model_returns_value(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-test-dummy")
         p = OpenAIProvider()
         model = p.create_model("gpt-4o-mini", temperature=0.5, max_tokens=100)
         assert model is not None
@@ -74,6 +88,7 @@ class TestModelManagerInit:
         assert "openai" in providers
         assert "deepseek" in providers
         assert "openrouter" in providers
+        assert "chatanywhere" in providers
 
     def test_default_provider_is_from_config(self, mgr: ModelManager) -> None:
         assert mgr.current_provider == "openai"
@@ -115,23 +130,35 @@ class TestModelSwitching:
 class TestModelFactory:
     """Tests for get_current_model."""
 
-    def test_get_current_model_returns_object(self, mgr: ModelManager) -> None:
+    def test_get_current_model_returns_object(
+        self, mgr: ModelManager, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-test-dummy")
         model = mgr.get_current_model()
         assert model is not None
         assert model.model_name == "gpt-4o-mini"
 
-    def test_get_current_model_no_cache(self, mgr: ModelManager) -> None:
+    def test_get_current_model_no_cache(
+        self, mgr: ModelManager, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Each call creates a fresh instance."""
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-test-dummy")
         m1 = mgr.get_current_model()
         m2 = mgr.get_current_model()
         assert m1 is not m2  # different objects — no caching
 
-    def test_get_current_model_reflects_switch(self, mgr: ModelManager) -> None:
+    def test_get_current_model_reflects_switch(
+        self, mgr: ModelManager, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-test-dummy")
         mgr.switch_model("openai", "gpt-4-turbo")
         model = mgr.get_current_model()
         assert model.model_name == "gpt-4-turbo"
 
-    def test_get_model_for_arbitrary_combo(self, mgr: ModelManager) -> None:
+    def test_get_model_for_arbitrary_combo(
+        self, mgr: ModelManager, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test-dummy")
         model = mgr.get_model_for("deepseek", "deepseek-reasoner")
         assert model.model_name == "deepseek-reasoner"
 

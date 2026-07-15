@@ -159,3 +159,28 @@ class OpenRouterProvider(BaseProvider):
     @property
     def default_model(self) -> str:
         return "openai/gpt-4o-mini"
+
+
+class ChatAnywhereProvider(BaseProvider):
+    """ChatAnywhere free API (OpenAI-compatible proxy).
+
+    Provides free access to GPT and DeepSeek models via a single endpoint.
+    Uses the same ``OPENAI_API_KEY`` environment variable — set it to your
+    ChatAnywhere key.
+    """
+
+    @property
+    def name(self) -> str:
+        return "chatanywhere"
+
+    @property
+    def base_url(self) -> str | None:
+        return "https://api.chatanywhere.tech/v1"
+
+    @property
+    def api_key_env(self) -> str:
+        return "OPENAI_API_KEY"
+
+    @property
+    def default_model(self) -> str:
+        return "gpt-4o-mini-ca"

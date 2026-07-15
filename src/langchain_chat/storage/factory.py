@@ -5,7 +5,6 @@ from __future__ import annotations
 from langchain_chat.core.config_models import StorageConfig
 from langchain_chat.storage.base import StorageBackend
 from langchain_chat.storage.file_backend import FileBackend
-from langchain_chat.storage.mysql_backend import MySQLBackend
 from langchain_chat.storage.sqlite_backend import SQLiteBackend
 
 
@@ -17,6 +16,9 @@ class StorageFactory:
         config = get_config()
         backend = StorageFactory.create(config.storage)
         await backend.initialize()
+
+    MySQL backend is imported lazily — you only need ``aiomysql`` installed
+    when ``storage.type`` is ``"mysql"``.
     """
 
     @staticmethod
@@ -31,6 +33,8 @@ class StorageFactory:
 
         Raises:
             ValueError: If the storage type is unknown.
+            ImportError: If ``type=mysql`` is requested but ``aiomysql`` is
+                not installed.
         """
         backend_type = storage_config.type.lower()
 
@@ -38,6 +42,8 @@ class StorageFactory:
             return SQLiteBackend(storage_config)
 
         if backend_type == "mysql":
+            from langchain_chat.storage.mysql_backend import MySQLBackend  # noqa: PLC0415
+
             return MySQLBackend(storage_config)
 
         if backend_type == "file":

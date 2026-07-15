@@ -95,4 +95,9 @@ def main_tui() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    if "--demo" in sys.argv:
+        main()
+    else:
+        main_tui()

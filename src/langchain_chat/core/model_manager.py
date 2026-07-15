@@ -17,6 +17,7 @@ from langchain_openai import ChatOpenAI
 from langchain_chat.core.config_models import LLMConfig
 from langchain_chat.core.provider import (
     BaseProvider,
+    ChatAnywhereProvider,
     DeepSeekProvider,
     OpenAIProvider,
     OpenRouterProvider,
@@ -30,6 +31,7 @@ _BUILTIN_PROVIDERS: list[type[BaseProvider]] = [
     OpenAIProvider,
     DeepSeekProvider,
     OpenRouterProvider,
+    ChatAnywhereProvider,
 ]
 
 # Fallback model lists used when config.yaml provides none.
@@ -37,6 +39,15 @@ _DEFAULT_MODEL_LISTS: dict[str, list[str]] = {
     "openai": ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-4.1", "o4-mini"],
     "deepseek": ["deepseek-chat", "deepseek-reasoner"],
     "openrouter": ["openai/gpt-4o-mini", "openai/gpt-4o", "anthropic/claude-sonnet-4"],
+    "chatanywhere": [
+        "gpt-4o-mini-ca",
+        "gpt-4.1-mini-ca",
+        "gpt-5.4-mini-ca",
+        "deepseek-chat",
+        "deepseek-r1",
+        "deepseek-v3.2",
+        "deepseek-v4-pro",
+    ],
 }
 
 
