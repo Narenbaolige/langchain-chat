@@ -1,6 +1,6 @@
 # Roadmap
 
-## Completed (Step 1–13)
+## Completed — All 18 Steps (v0.1.0)
 
 | Step | Feature | Tag |
 |------|---------|-----|
@@ -16,22 +16,13 @@
 | 10 | ModelManager + multi-provider | `v0.1.0-step10-model-manager` |
 | 11 | MySQL Backend | `v0.1.0-step11-mysql` |
 | 12 | File Backend + Logging | `v0.1.0-step12-file-logging` |
-| 13 | Test system (269 tests) | `v0.1.0-step13-testing` |
-
-## In Progress (Step 14)
-
-| Step | Feature | Focus |
-|------|---------|-------|
-| 14 | Architecture audit + documentation | Audit, docs, no new features |
-
-## Planned (Step 15–17)
-
-| Step | Feature | Key Deliverables |
-|------|---------|-----------------|
-| 15 | Multi-env configuration | dev/test/prod config, env override |
-| 16a | Security enhancement | Input limits, token budgets, API key protection |
-| 16b | Code quality | Session pagination, type hints, integration tests |
-| 17 | Git engineering | CHANGELOG, hooks, release process |
+| 13 | Test system | `v0.1.0-step13-testing` |
+| 14 | Architecture audit + documentation | `v0.1.0-step14-audit-docs` |
+| 15 | Multi-env configuration | `v0.1.0-step15-multi-env` |
+| 16a | Security enhancement | `v0.1.0-step16a-security` |
+| 16b | Code quality | `v0.1.0-step16b-quality` |
+| 17 | Git engineering | `v0.1.0-step17-git-engineering` |
+| 18 | ChatAnywhere integration | `v0.1.0-step18-chatanywhere` |
 
 ## Future Directions
 

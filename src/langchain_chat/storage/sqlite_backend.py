@@ -37,7 +37,13 @@ class SQLiteBackend(StorageBackend):
     # ------------------------------------------------------------------
 
     async def initialize(self) -> None:
-        """Create tables and open a persistent connection."""
+        """Create tables and open a persistent connection.
+
+        Idempotent — if a connection is already open, it is closed first
+        before opening a new one.
+        """
+        if self._conn is not None:
+            await self.close()
         if self._db_path != ":memory:":
             Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = await aiosqlite.connect(self._db_path)

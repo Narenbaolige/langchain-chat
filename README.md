@@ -101,7 +101,7 @@ Add models via config — no code change required.
 
 ```bash
 pip install -e ".[dev]"
-pytest                    # 269 tests
+pytest                    # 313 tests
 ruff check .              # Lint
 ruff format .             # Format
 ```
@@ -136,6 +136,7 @@ ruff format .             # Format
 | 16a | `v0.1.0-step16a-security` | Security hardening |
 | 16b | `v0.1.0-step16b-quality` | Code quality + pagination |
 | 17 | `v0.1.0-step17-git-engineering` | Git engineering |
+| 18 | `v0.1.0-step18-chatanywhere` | ChatAnywhere integration |
 
 ## License
 

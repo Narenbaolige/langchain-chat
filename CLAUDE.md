@@ -15,7 +15,7 @@ UI Layer → Core Business Layer → Storage Layer → Database/File
 - Model injection: ChatEngine receives model via `set_model()`, does not own lifecycle
 - ModelManager owns provider registry + model switching
 
-## Project Status — Step 13 (Current)
+## Project Status — All 18 Steps Complete ✅
 
 | Step | Scope | Status |
 |------|-------|--------|
@@ -37,6 +37,7 @@ UI Layer → Core Business Layer → Storage Layer → Database/File
 | 16a | Security enhancement | ✅ v0.1.0-step16a-security |
 | 16b | Code quality | ✅ v0.1.0-step16b-quality |
 | 17 | Git engineering | ✅ v0.1.0-step17-git-engineering |
+| 18 | ChatAnywhere integration | ✅ v0.1.0-step18-chatanywhere |
 
 ## Engineering Rules
 
@@ -61,7 +62,7 @@ UI Layer → Core Business Layer → Storage Layer → Database/File
 ## Testing
 
 ```bash
-pytest                    # 269 tests
+pytest                    # 313 tests
 ruff check .              # Lint
 ruff format .             # Format
 ```
