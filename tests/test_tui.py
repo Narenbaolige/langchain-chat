@@ -270,3 +270,67 @@ class TestStep8Commands:
         handler = CommandHandler()
         result = await handler.handle("/delete-session", ctx)
         assert result is not EXIT
+
+
+# ------------------------------------------------------------------
+# Step 9 — ChatView polish tests
+# ------------------------------------------------------------------
+
+
+class TestChatView:
+    """Tests for the enhanced ChatView display methods."""
+
+    def test_build_prompt_basic(self) -> None:
+        view = ChatView()
+        prompt = view.build_prompt("alice")
+        assert "alice" in prompt
+
+    def test_build_prompt_with_session(self) -> None:
+        view = ChatView()
+        prompt = view.build_prompt("alice", session_id=5)
+        assert "alice" in prompt
+        assert "5" in prompt
+
+    def test_build_prompt_with_system_active(self) -> None:
+        view = ChatView()
+        view.set_system_prompt_active(True)
+        prompt = view.build_prompt("alice", session_id=1)
+        assert "⚡" in prompt
+
+    def test_system_prompt_active_property(self) -> None:
+        view = ChatView()
+        assert view.system_prompt_active is False
+        view.set_system_prompt_active(True)
+        assert view.system_prompt_active is True
+
+    def test_show_warning_output(self) -> None:
+        """Smoke test — ensure show_warning doesn't crash."""
+        view = ChatView()
+        view.show_warning("Test warning")
+
+    def test_show_error_output(self) -> None:
+        """Smoke test — ensure show_error panel doesn't crash."""
+        view = ChatView()
+        view.show_error("Test error")
+
+    def test_show_sessions_no_data(self) -> None:
+        """Smoke test — empty list."""
+        view = ChatView()
+        view.show_sessions([])
+
+    def test_show_sessions_with_data(self) -> None:
+        """Smoke test — sessions with message counts."""
+        view = ChatView()
+        view.show_sessions(
+            [{"id": 1, "title": "Test", "updated_at": "2026-01-01", "message_count": "3"}]
+        )
+
+    def test_show_help_grouped(self) -> None:
+        """Smoke test — grouped help display."""
+        view = ChatView()
+        view.show_help()
+
+    def test_show_welcome_with_session(self) -> None:
+        """Smoke test — welcome with session context."""
+        view = ChatView()
+        view.show_welcome("testuser", session_id=42, system_prompt=True)

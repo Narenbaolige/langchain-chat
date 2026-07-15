@@ -176,7 +176,7 @@ async def _cmd_user(ctx: CommandContext, args: str) -> ActionResult:
     """Switch to a different user."""
     name = args.strip()
     if not name:
-        ctx.view.show_error("Usage: /user <username>")
+        ctx.view.show_error("Usage: /user <username>  — switch to a different user")
         return CONTINUE
     try:
         user = await ctx.user_manager.get_user_by_name(name)
@@ -208,7 +208,7 @@ async def _cmd_preset(ctx: CommandContext, args: str) -> ActionResult:
     """Load a preset as the system prompt."""
     name = args.strip()
     if not name:
-        ctx.view.show_error("Usage: /preset <name>")
+        ctx.view.show_error("Usage: /preset <name>  — load a preset as system prompt")
         return CONTINUE
     try:
         preset = await ctx.prompt_manager.get_preset_by_name(name)
@@ -224,7 +224,7 @@ async def _cmd_system(ctx: CommandContext, args: str) -> ActionResult:
     """Set a raw system prompt directly."""
     text = args.strip()
     if not text:
-        ctx.view.show_error("Usage: /system <prompt text>")
+        ctx.view.show_error("Usage: /system <text>  — set a raw system prompt")
         return CONTINUE
     if ctx.on_preset_change:
         await ctx.on_preset_change({"name": "(inline)", "content": text})
@@ -253,20 +253,20 @@ async def _cmd_sessions(ctx: CommandContext, _args: str) -> ActionResult:
     user = await ctx.user_manager.get_user_by_name(ctx.current_user_name)
     sessions = await ctx.session_manager.list_sessions(user_id=user.id)
     if not sessions:
-        ctx.view.show_info("No sessions found.")
+        ctx.view.show_info("No sessions found. Start chatting to create one.")
         return CONTINUE
 
-    session_dicts = [
-        {
-            "id": s.id,
-            "username": ctx.current_user_name,
-            "title": s.title,
-            "created_at": str(s.created_at),
-            "updated_at": str(s.updated_at),
-        }
-        for s in sessions
-    ]
-    # Reuse show_users table for sessions display (abusing a bit, but works).
+    session_dicts: list[dict] = []
+    for s in sessions:
+        msgs = await ctx.session_manager.get_messages(s.id)
+        session_dicts.append(
+            {
+                "id": s.id,
+                "title": s.title,
+                "updated_at": str(s.updated_at),
+                "message_count": str(len(msgs)),
+            }
+        )
     ctx.view.show_sessions(session_dicts)
     return CONTINUE
 
@@ -275,23 +275,24 @@ async def _cmd_search(ctx: CommandContext, args: str) -> ActionResult:
     """Search session titles."""
     query = args.strip()
     if not query:
-        ctx.view.show_error("Usage: /search <query>")
+        ctx.view.show_error("Usage: /search <query>  — search sessions by title")
         return CONTINUE
     user = await ctx.user_manager.get_user_by_name(ctx.current_user_name)
     sessions = await ctx.session_manager.search_sessions(user.id, query)
     if not sessions:
         ctx.view.show_info(f"No sessions matching {query!r}.")
         return CONTINUE
-    session_dicts = [
-        {
-            "id": s.id,
-            "username": ctx.current_user_name,
-            "title": s.title,
-            "created_at": str(s.created_at),
-            "updated_at": str(s.updated_at),
-        }
-        for s in sessions
-    ]
+    session_dicts: list[dict] = []
+    for s in sessions:
+        msgs = await ctx.session_manager.get_messages(s.id)
+        session_dicts.append(
+            {
+                "id": s.id,
+                "title": s.title,
+                "updated_at": str(s.updated_at),
+                "message_count": str(len(msgs)),
+            }
+        )
     ctx.view.show_sessions(session_dicts)
     return CONTINUE
 
@@ -300,7 +301,7 @@ async def _cmd_rename(ctx: CommandContext, args: str) -> ActionResult:
     """Rename the current session."""
     new_title = args.strip()
     if not new_title:
-        ctx.view.show_error("Usage: /rename <new title>")
+        ctx.view.show_error("Usage: /rename <new title>  — rename current session")
         return CONTINUE
     if ctx.session is None:
         ctx.view.show_error("No active session.")

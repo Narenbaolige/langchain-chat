@@ -24,8 +24,6 @@ from langchain_chat.ui.commands import EXIT, CommandContext, CommandHandler
 # Prompt shown to the user
 # ------------------------------------------------------------------
 
-_DEFAULT_PROMPT = "> "
-
 
 class TuiChatApp:
     """Async terminal chat application.
@@ -139,7 +137,11 @@ class TuiChatApp:
 
         # -- Welcome --
         self._view.set_system_prompt_active(self._system_prompt is not None)
-        self._view.show_welcome(self._user_name)
+        self._view.show_welcome(
+            self._user_name,
+            session_id=self._session.id if self._session else None,
+            system_prompt=self._system_prompt is not None,
+        )
 
     # ------------------------------------------------------------------
     # Input loop
@@ -148,8 +150,12 @@ class TuiChatApp:
     async def _input_loop(self) -> None:
         """Main REPL: read line → dispatch command or chat."""
         while self._running:
+            prompt = self._view.build_prompt(
+                self._user_name,
+                session_id=self._session.id if self._session else None,
+            )
             try:
-                line = await asyncio.to_thread(input, _DEFAULT_PROMPT)
+                line = await asyncio.to_thread(input, prompt)
             except EOFError:
                 # Ctrl+D / Ctrl+Z — exit gracefully
                 self._running = False
@@ -214,7 +220,18 @@ class TuiChatApp:
                     self._view.stream_token(token)
             self._view.show_assistant_end()
         except Exception as exc:
-            self._view.show_error(f"Chat engine error: {exc}")
+            self._view.console.print()  # newline after streaming prefix
+            error_msg = str(exc)
+            if "api_key" in error_msg.lower() or "apikey" in error_msg.lower():
+                self._view.show_error(
+                    "API key not configured. Set OPENAI_API_KEY in your .env file."
+                )
+            elif "timeout" in error_msg.lower():
+                self._view.show_error("Request timed out. Check your network or try again.")
+            elif "connection" in error_msg.lower():
+                self._view.show_error("Network error. Check your internet connection.")
+            else:
+                self._view.show_error(f"Chat error: {error_msg}")
             return
 
         # Persist both sides of the conversation immediately.
