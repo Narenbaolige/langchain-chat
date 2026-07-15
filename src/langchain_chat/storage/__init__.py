@@ -10,10 +10,12 @@ Provides:
 from langchain_chat.storage.base import StorageBackend
 from langchain_chat.storage.database import init_database
 from langchain_chat.storage.factory import StorageFactory
+from langchain_chat.storage.file_backend import FileBackend
 from langchain_chat.storage.mysql_backend import MySQLBackend
 from langchain_chat.storage.sqlite_backend import SQLiteBackend
 
 __all__ = [
+    "FileBackend",
     "MySQLBackend",
     "SQLiteBackend",
     "StorageBackend",

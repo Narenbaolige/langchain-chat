@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 
 from langchain_chat.core.chat_engine import ChatEngine
 from langchain_chat.core.config_manager import get_config
@@ -10,13 +11,17 @@ from langchain_chat.core.model_manager import ModelManager
 from langchain_chat.core.prompt_manager import PromptManager
 from langchain_chat.core.session_manager import SessionManager
 from langchain_chat.core.user_manager import DuplicateUserError, UserManager
+from langchain_chat.logging_config import setup_logging
 from langchain_chat.storage.factory import StorageFactory
 from langchain_chat.ui.app import TuiChatApp
+
+logger = logging.getLogger(__name__)
 
 
 async def _async_main() -> None:
     """Async entry point: initialise storage + UserManager, create demo user."""
     config = get_config()
+    setup_logging(level=config.logging.level, log_file="logs/app.log")
 
     storage = StorageFactory.create(config.storage)
     await storage.initialize()
@@ -55,6 +60,8 @@ def main() -> None:
 async def _async_tui() -> None:
     """Initialise all managers and launch the TUI chat application."""
     config = get_config()
+    setup_logging(level=config.logging.level, log_file="logs/app.log")
+    logger.info("Starting TUI chat...")
 
     storage = StorageFactory.create(config.storage)
     await storage.initialize()
