@@ -11,7 +11,7 @@ UI Layer → Core Business Layer → Storage Layer → Database/File
 - Strict layered isolation — UI never touches database directly
 - Storage access through abstract `StorageBackend` interface
 - Three backend implementations: SQLite, MySQL, File (JSON)
-- Multi-provider LLM support: OpenAI, DeepSeek, OpenRouter
+- Multi-provider LLM support: OpenAI, DeepSeek, OpenRouter, ChatAnywhere
 - Runtime model switching without restart
 
 ## Quick Start
@@ -94,6 +94,7 @@ Configured in `config/config.yaml:llm.models`:
 | OpenAI | gpt-4o-mini, gpt-4o, gpt-4-turbo, gpt-4.1, o4-mini |
 | DeepSeek | deepseek-chat, deepseek-reasoner |
 | OpenRouter | openai/gpt-4o-mini, openai/gpt-4o, anthropic/claude-sonnet-4 |
+| ChatAnywhere | gpt-4o-mini-ca, gpt-4.1-mini-ca, gpt-5.4-mini-ca |
 
 Add models via config — no code change required.
 
