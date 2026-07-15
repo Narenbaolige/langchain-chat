@@ -16,11 +16,28 @@ class AppConfig(BaseModel):
     debug: bool = False
 
 
+class MySQLConfig(BaseModel):
+    """MySQL connection parameters (used when storage type is ``"mysql"``)."""
+
+    host: str = "localhost"
+    port: int = 3306
+    database: str = "langchain_chat"
+    user: str = "root"
+    password: str = ""
+    pool_size: int = 5
+
+
 class StorageConfig(BaseModel):
-    """Storage backend configuration."""
+    """Storage backend configuration.
+
+    When ``type`` is ``"sqlite"`` the ``database`` field is a file path
+    (or ``":memory:"``).  When ``type`` is ``"mysql"`` the nested
+    ``mysql`` config is used for connection parameters.
+    """
 
     type: str = "sqlite"
     database: str = "data/chat.db"
+    mysql: MySQLConfig | None = None
 
 
 class LLMConfig(BaseModel):

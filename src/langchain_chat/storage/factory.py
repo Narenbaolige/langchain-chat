@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from langchain_chat.core.config_models import StorageConfig
 from langchain_chat.storage.base import StorageBackend
+from langchain_chat.storage.mysql_backend import MySQLBackend
 from langchain_chat.storage.sqlite_backend import SQLiteBackend
 
 
@@ -35,4 +36,7 @@ class StorageFactory:
         if backend_type == "sqlite":
             return SQLiteBackend(storage_config)
 
-        raise ValueError(f"Unknown storage type: {backend_type!r}. Supported types: sqlite")
+        if backend_type == "mysql":
+            return MySQLBackend(storage_config)
+
+        raise ValueError(f"Unknown storage type: {backend_type!r}. Supported types: sqlite, mysql")

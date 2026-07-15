@@ -10,6 +10,13 @@ app:
 storage:
   type: sqlite
   database: data/chat.db
+  mysql:
+    host: localhost
+    port: 3306
+    database: langchain_chat
+    user: root
+    password: ""
+    pool_size: 5
 
 llm:
   provider: openai
