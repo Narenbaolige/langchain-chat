@@ -19,6 +19,7 @@ dependencies = [
     "aiosqlite>=0.19.0",
     "langchain-core>=0.3.0",
     "langchain-openai>=0.2.0",
+    "rich>=13.0",
 ]
 
 [project.optional-dependencies]
@@ -27,6 +28,10 @@ dev = [
     "pytest-asyncio>=0.21",
     "ruff>=0.1.0",
 ]
+
+[project.scripts]
+langchain-chat = "langchain_chat.main:main"
+langchain-chat-tui = "langchain_chat.main:main_tui"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -56,5 +61,5 @@ line-ending = "auto"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "tests"]
 asyncio_mode = "auto"

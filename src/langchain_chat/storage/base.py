@@ -91,15 +91,18 @@ class StorageBackend(ABC):
     # ------------------------------------------------------------------
 
     @abstractmethod
-    async def create_session(self, user_id: int, title: str = "") -> dict[str, Any]:
+    async def create_session(
+        self, user_id: int, title: str = "", preset_id: int | None = None
+    ) -> dict[str, Any]:
         """Create a new chat session.
 
         Args:
             user_id: Owner of the session.
             title: Optional human-readable title.
+            preset_id: Optional preset bound to this session (reserved).
 
         Returns:
-            dict with keys: id, user_id, title, created_at.
+            dict with keys: id, user_id, preset_id, title, created_at, updated_at.
         """
         ...
 

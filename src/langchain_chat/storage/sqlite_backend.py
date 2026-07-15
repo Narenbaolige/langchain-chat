@@ -92,20 +92,25 @@ class SQLiteBackend(StorageBackend):
     # Session operations
     # ------------------------------------------------------------------
 
-    async def create_session(self, user_id: int, title: str = "") -> dict[str, Any]:
+    async def create_session(
+        self, user_id: int, title: str = "", preset_id: int | None = None
+    ) -> dict[str, Any]:
         cursor = await self._db.execute(
-            "INSERT INTO sessions (user_id, title) VALUES (?, ?)", (user_id, title)
+            "INSERT INTO sessions (user_id, title, preset_id) VALUES (?, ?, ?)",
+            (user_id, title, preset_id),
         )
         await self._db.commit()
         row = await self._db.execute(
-            "SELECT id, user_id, title, created_at FROM sessions WHERE id = ?",
+            "SELECT id, user_id, preset_id, title, created_at, updated_at "
+            "FROM sessions WHERE id = ?",
             (cursor.lastrowid,),
         )
         return dict(await row.fetchone())
 
     async def get_session(self, session_id: int) -> dict[str, Any] | None:
         cursor = await self._db.execute(
-            "SELECT id, user_id, title, created_at FROM sessions WHERE id = ?",
+            "SELECT id, user_id, preset_id, title, created_at, updated_at "
+            "FROM sessions WHERE id = ?",
             (session_id,),
         )
         row = await cursor.fetchone()
@@ -114,13 +119,14 @@ class SQLiteBackend(StorageBackend):
     async def list_sessions(self, user_id: int | None = None) -> list[dict[str, Any]]:
         if user_id is not None:
             cursor = await self._db.execute(
-                "SELECT id, user_id, title, created_at FROM sessions WHERE user_id = ? "
-                "ORDER BY created_at DESC",
+                "SELECT id, user_id, preset_id, title, created_at, updated_at "
+                "FROM sessions WHERE user_id = ? ORDER BY updated_at DESC",
                 (user_id,),
             )
         else:
             cursor = await self._db.execute(
-                "SELECT id, user_id, title, created_at FROM sessions ORDER BY created_at DESC"
+                "SELECT id, user_id, preset_id, title, created_at, updated_at "
+                "FROM sessions ORDER BY updated_at DESC"
             )
         return [dict(row) for row in await cursor.fetchall()]
 

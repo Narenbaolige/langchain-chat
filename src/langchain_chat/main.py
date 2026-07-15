@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import asyncio
 
+from langchain_chat.core.chat_engine import ChatEngine
 from langchain_chat.core.config_manager import get_config
+from langchain_chat.core.prompt_manager import PromptManager
+from langchain_chat.core.session_manager import SessionManager
 from langchain_chat.core.user_manager import DuplicateUserError, UserManager
 from langchain_chat.storage.factory import StorageFactory
+from langchain_chat.ui.app import TuiChatApp
 
 
 async def _async_main() -> None:
@@ -38,8 +42,38 @@ async def _async_main() -> None:
 
 
 def main() -> None:
-    """Synchronous entry point."""
+    """Synchronous entry point (bootstrap-only demo)."""
     asyncio.run(_async_main())
+
+
+# ------------------------------------------------------------------
+# TUI entry point
+# ------------------------------------------------------------------
+
+
+async def _async_tui() -> None:
+    """Initialise all managers and launch the TUI chat application."""
+    config = get_config()
+
+    storage = StorageFactory.create(config.storage)
+    await storage.initialize()
+
+    try:
+        user_manager = UserManager(storage)
+        prompt_manager = PromptManager(storage)
+        session_manager = SessionManager(storage)
+        engine = ChatEngine(config.llm)
+
+        app = TuiChatApp(user_manager, prompt_manager, session_manager, engine)
+        await app.run()
+
+    finally:
+        await storage.close()
+
+
+def main_tui() -> None:
+    """Synchronous entry point for the TUI chat."""
+    asyncio.run(_async_tui())
 
 
 if __name__ == "__main__":
