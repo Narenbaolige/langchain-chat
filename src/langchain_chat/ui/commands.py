@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Coroutine
 
 from langchain_chat.core.chat_engine import ChatEngine
+from langchain_chat.core.model_manager import ModelManager
 from langchain_chat.core.prompt_manager import PromptManager
 from langchain_chat.core.session_manager import SessionManager
 from langchain_chat.core.user_manager import UserManager
@@ -45,6 +46,7 @@ class CommandContext:
     user_manager: UserManager
     prompt_manager: PromptManager
     session_manager: SessionManager
+    model_manager: ModelManager
     engine: ChatEngine
     view: ChatView
     current_user_name: str
@@ -54,6 +56,7 @@ class CommandContext:
     on_user_change: Callable[[str], Coroutine[Any, Any, None]] | None = None
     on_preset_change: Callable[[dict], Coroutine[Any, Any, None]] | None = None
     on_session_open: Callable[[int], Coroutine[Any, Any, None]] | None = None
+    on_model_change: Callable[[str, str], Coroutine[Any, Any, None]] | None = None
 
 
 # ------------------------------------------------------------------
@@ -355,6 +358,71 @@ async def _cmd_delete_session(ctx: CommandContext, args: str) -> ActionResult:
     return CONTINUE
 
 
+# ------------------------------------------------------------------
+# Step 10 — Model management commands
+# ------------------------------------------------------------------
+
+
+async def _cmd_providers(ctx: CommandContext, _args: str) -> ActionResult:
+    """List available providers."""
+    providers = ctx.model_manager.list_providers()
+    current = ctx.model_manager.current_provider
+    lines = []
+    for p in providers:
+        marker = " →" if p == current else "  "
+        info = ctx.model_manager.get_provider_info(p)
+        lines.append(f"{marker} [bold]{p}[/] — {len(info['models'])} models")
+        if p == current:
+            lines.append(f"        current: [yellow]{ctx.model_manager.current_model}[/]")
+    ctx.view.console.print("\n".join(lines))
+    return CONTINUE
+
+
+async def _cmd_models(ctx: CommandContext, args: str) -> ActionResult:
+    """List models for a provider (defaults to current)."""
+    provider = args.strip() or ctx.model_manager.current_provider
+    try:
+        info = ctx.model_manager.get_provider_info(provider)
+    except Exception as exc:
+        ctx.view.show_error(str(exc))
+        return CONTINUE
+
+    current = ctx.model_manager.current_model
+    lines = [f"Provider: [bold]{provider}[/]"]
+    for m in info["models"]:
+        marker = " →" if provider == ctx.model_manager.current_provider and m == current else "  "
+        lines.append(f"{marker} {m}")
+    ctx.view.console.print("\n".join(lines))
+    return CONTINUE
+
+
+async def _cmd_model(ctx: CommandContext, args: str) -> ActionResult:
+    """Switch model within the current provider."""
+    model_name = args.strip()
+    if not model_name:
+        ctx.view.show_error("Usage: /model <name>  — switch model in current provider")
+        return CONTINUE
+    if ctx.on_model_change:
+        await ctx.on_model_change(ctx.model_manager.current_provider, model_name)
+    return CONTINUE
+
+
+async def _cmd_provider(ctx: CommandContext, args: str) -> ActionResult:
+    """Switch provider (auto-selects its default model)."""
+    name = args.strip()
+    if not name:
+        ctx.view.show_error("Usage: /provider <name>  — switch provider")
+        return CONTINUE
+    try:
+        info = ctx.model_manager.get_provider_info(name)
+        default = info["default_model"]
+        if ctx.on_model_change:
+            await ctx.on_model_change(name, default)
+    except Exception as exc:
+        ctx.view.show_error(str(exc))
+    return CONTINUE
+
+
 # Registry of all built-in commands.
 _BUILTIN_COMMANDS: dict[str, HandlerFunc] = {
     "help": _cmd_help,
@@ -372,4 +440,8 @@ _BUILTIN_COMMANDS: dict[str, HandlerFunc] = {
     "rename": _cmd_rename,
     "open": _cmd_open,
     "delete-session": _cmd_delete_session,
+    "providers": _cmd_providers,
+    "models": _cmd_models,
+    "model": _cmd_model,
+    "provider": _cmd_provider,
 }

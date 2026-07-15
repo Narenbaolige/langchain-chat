@@ -6,6 +6,7 @@ import pytest
 from fakes import FakeModel  # noqa: F401 — re-exported for test modules
 
 from langchain_chat.core.config_models import LLMConfig, StorageConfig
+from langchain_chat.core.model_manager import ModelManager
 from langchain_chat.storage.sqlite_backend import SQLiteBackend
 
 # ------------------------------------------------------------------
@@ -25,6 +26,12 @@ def llm_config() -> LLMConfig:
     return LLMConfig(
         model="gpt-4o-mini", temperature=0.7, max_tokens=100, timeout=30, max_retries=2
     )
+
+
+@pytest.fixture
+def model_manager(llm_config: LLMConfig) -> ModelManager:
+    """Return a ModelManager pre-registered with built-in providers."""
+    return ModelManager(llm_config)
 
 
 @pytest.fixture

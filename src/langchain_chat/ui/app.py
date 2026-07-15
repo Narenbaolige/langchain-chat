@@ -13,6 +13,7 @@ import signal
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from langchain_chat.core.chat_engine import ChatEngine
+from langchain_chat.core.model_manager import ModelManager
 from langchain_chat.core.prompt_manager import PromptManager
 from langchain_chat.core.session_manager import SessionManager
 from langchain_chat.core.user_manager import DuplicateUserError, UserManager
@@ -33,7 +34,7 @@ class TuiChatApp:
 
     Usage::
 
-        app = TuiChatApp(user_mgr, prompt_mgr, session_mgr, engine)
+        app = TuiChatApp(user_mgr, prompt_mgr, session_mgr, model_mgr, engine)
         await app.run()
     """
 
@@ -42,6 +43,7 @@ class TuiChatApp:
         user_manager: UserManager,
         prompt_manager: PromptManager,
         session_manager: SessionManager,
+        model_manager: ModelManager,
         engine: ChatEngine,
         *,
         view: ChatView | None = None,
@@ -49,6 +51,7 @@ class TuiChatApp:
         self._user_manager = user_manager
         self._prompt_manager = prompt_manager
         self._session_manager = session_manager
+        self._model_manager = model_manager
         self._engine = engine
         self._view = view or ChatView()
 
@@ -141,6 +144,8 @@ class TuiChatApp:
             self._user_name,
             session_id=self._session.id if self._session else None,
             system_prompt=self._system_prompt is not None,
+            provider=self._model_manager.current_provider,
+            model=self._model_manager.current_model,
         )
 
     # ------------------------------------------------------------------
@@ -153,6 +158,7 @@ class TuiChatApp:
             prompt = self._view.build_prompt(
                 self._user_name,
                 session_id=self._session.id if self._session else None,
+                model_name=f"{self._model_manager.current_provider}/{self._model_manager.current_model}",
             )
             try:
                 line = await asyncio.to_thread(input, prompt)
@@ -185,6 +191,7 @@ class TuiChatApp:
             user_manager=self._user_manager,
             prompt_manager=self._prompt_manager,
             session_manager=self._session_manager,
+            model_manager=self._model_manager,
             engine=self._engine,
             view=self._view,
             current_user_name=self._user_name,
@@ -192,6 +199,7 @@ class TuiChatApp:
             on_user_change=self._on_user_change,
             on_preset_change=self._on_preset_change,
             on_session_open=self._on_session_open,
+            on_model_change=self._on_model_change,
         )
         result = await self._command_handler.handle(line, ctx)
         if result is EXIT:
@@ -299,6 +307,23 @@ class TuiChatApp:
         self._view.show_success(
             f"Reopened session {session.id}: {session.title!r} ({len(messages)} messages restored)"
         )
+
+    async def _on_model_change(self, provider_name: str, model_name: str) -> None:
+        """Switch the active model and push it to ChatEngine."""
+        try:
+            self._model_manager.switch_model(provider_name, model_name)
+            new_model = self._model_manager.get_current_model()
+            self._engine.set_model(new_model)
+            self._view.show_success(f"Switched to [bold]{provider_name}[/] / {model_name}")
+            self._view.show_welcome(
+                self._user_name,
+                session_id=self._session.id if self._session else None,
+                system_prompt=self._system_prompt is not None,
+                provider=self._model_manager.current_provider,
+                model=self._model_manager.current_model,
+            )
+        except Exception as exc:
+            self._view.show_error(str(exc))
 
     # ------------------------------------------------------------------
     # Signal handling

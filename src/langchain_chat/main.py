@@ -6,6 +6,7 @@ import asyncio
 
 from langchain_chat.core.chat_engine import ChatEngine
 from langchain_chat.core.config_manager import get_config
+from langchain_chat.core.model_manager import ModelManager
 from langchain_chat.core.prompt_manager import PromptManager
 from langchain_chat.core.session_manager import SessionManager
 from langchain_chat.core.user_manager import DuplicateUserError, UserManager
@@ -62,9 +63,11 @@ async def _async_tui() -> None:
         user_manager = UserManager(storage)
         prompt_manager = PromptManager(storage)
         session_manager = SessionManager(storage)
-        engine = ChatEngine(config.llm)
 
-        app = TuiChatApp(user_manager, prompt_manager, session_manager, engine)
+        model_manager = ModelManager(config.llm)
+        engine = ChatEngine(model=model_manager.get_current_model())
+
+        app = TuiChatApp(user_manager, prompt_manager, session_manager, model_manager, engine)
         await app.run()
 
     finally:

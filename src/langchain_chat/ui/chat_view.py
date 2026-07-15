@@ -30,7 +30,12 @@ class ChatView:
     # ------------------------------------------------------------------
 
     def show_welcome(
-        self, user_name: str, session_id: int | None = None, system_prompt: bool = False
+        self,
+        user_name: str,
+        session_id: int | None = None,
+        system_prompt: bool = False,
+        provider: str = "",
+        model: str = "",
     ) -> None:
         """Display the welcome banner with session context."""
         self.console.print()
@@ -40,6 +45,8 @@ class ChatView:
         ]
         if session_id is not None:
             parts.append(f"Session: [dim]#{session_id}[/]")
+        if provider and model:
+            parts.append(f"Model:   [yellow]{provider}/{model}[/]")
         parts.append(
             f"System prompt: [{'green' if system_prompt else 'dim'}]{'active' if system_prompt else 'none'}[/]"
         )
@@ -179,6 +186,15 @@ class ChatView:
                 ],
             ),
             (
+                "Model (Step 10)",
+                [
+                    ("/providers", "List available providers"),
+                    ("/models [provider]", "List models for a provider"),
+                    ("/provider <name>", "Switch provider"),
+                    ("/model <name>", "Switch model (within current provider)"),
+                ],
+            ),
+            (
                 "System",
                 [
                     ("/help", "Show this help"),
@@ -222,11 +238,15 @@ class ChatView:
     # Prompt helpers
     # ------------------------------------------------------------------
 
-    def build_prompt(self, user_name: str, session_id: int | None = None) -> str:
-        """Build a dynamic prompt showing user and session context."""
+    def build_prompt(
+        self, user_name: str, session_id: int | None = None, model_name: str = ""
+    ) -> str:
+        """Build a dynamic prompt showing user, session, and model context."""
         parts = [user_name]
         if session_id is not None:
             parts.append(f"#{session_id}")
+        if model_name:
+            parts.append(model_name)
         if self._system_prompt_active:
             parts.append("⚡")
         return f"[{':'.join(parts)}] > "

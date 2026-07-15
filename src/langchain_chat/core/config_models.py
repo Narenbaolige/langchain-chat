@@ -24,14 +24,19 @@ class StorageConfig(BaseModel):
 
 
 class LLMConfig(BaseModel):
-    """LLM provider and model configuration."""
+    """LLM provider and model configuration.
 
-    provider: str = ""
-    model: str = ""
+    ``models`` maps provider names to their available model lists.
+    When empty, built-in defaults are used.
+    """
+
+    provider: str = "openai"
+    model: str = "gpt-4o-mini"
     temperature: float = 0.7
     max_tokens: int = 4096
     timeout: int = 60
     max_retries: int = 3
+    models: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class LoggingConfig(BaseModel):

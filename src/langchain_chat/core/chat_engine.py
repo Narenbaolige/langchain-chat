@@ -1,8 +1,13 @@
 """Chat Engine — Core Business Layer module.
 
-The first module to integrate LangChain. ChatEngine wraps a ChatModel
-(OpenAI-compatible) with conversation memory, streaming, token counting,
-and config-driven retry/timeout behaviour.
+ChatEngine wraps a ChatModel with conversation memory, streaming, and
+token counting.  It does NOT own or create models — the model instance
+is injected via :meth:`set_model` (or the constructor) by the caller
+(typically a :class:`ModelManager` in production, or ``FakeModel`` in
+tests).
+
+Model lifecycle management belongs to :class:`ModelManager`; ChatEngine
+focuses exclusively on chat, memory, streaming, and token counting.
 """
 
 from __future__ import annotations
@@ -11,9 +16,6 @@ from dataclasses import dataclass
 from typing import Any, AsyncIterator
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
-
-from langchain_chat.core.config_models import LLMConfig
 
 
 @dataclass
@@ -27,39 +29,42 @@ class ChatResponse:
 
 
 class ChatEngine:
-    """Async-first chat engine backed by LangChain ChatOpenAI.
+    """Async-first chat engine backed by an injected ChatModel.
 
     Maintains an in-memory conversation history (not persisted to DB).
     Supports both one-shot ``chat()`` and streaming ``stream_chat()``.
 
     Usage::
 
-        engine = ChatEngine(config.llm)
+        engine = ChatEngine(model=some_chat_openai_instance)
         resp = await engine.chat("Hello!")
         print(resp.content)
 
-        async for token in engine.stream_chat("Tell me a story"):
-            print(token, end="", flush=True)
-
-        engine.clear_memory()
+        # Runtime model switching:
+        engine.set_model(another_model)
     """
 
-    def __init__(self, config: LLMConfig, *, model: Any = None) -> None:
+    def __init__(self, *, model: Any = None) -> None:
         """Initialise the engine.
 
         Args:
-            config: LLM configuration (model, temperature, timeout, …).
-            model: Optional pre-built model instance. When omitted a
-                   ``ChatOpenAI`` is created from *config*. Useful for
-                   injecting mock models during testing.
+            model: The ChatModel instance to use.  Can be set later via
+                   :meth:`set_model`.  If omitted, calling :meth:`chat`
+                   before a model is set raises ``RuntimeError``.
         """
-        self._config = config
         self._model: Any = model
         self._messages: list[BaseMessage] = []
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
+
+    def set_model(self, model: Any) -> None:
+        """Replace the underlying ChatModel (for runtime model switching).
+
+        Conversation memory is preserved across model changes.
+        """
+        self._model = model
 
     async def chat(self, message: str, system_prompt: str | None = None) -> ChatResponse:
         """Send a message and receive a complete response.
@@ -127,15 +132,15 @@ class ChatEngine:
     # ------------------------------------------------------------------
 
     @property
-    def model(self) -> ChatOpenAI:
-        """Lazily build and return the LangChain ChatModel."""
+    def model(self) -> Any:
+        """Return the current ChatModel instance.
+
+        Raises:
+            RuntimeError: If no model has been set.
+        """
         if self._model is None:
-            self._model = ChatOpenAI(
-                model=self._config.model or "gpt-4o-mini",
-                temperature=self._config.temperature,
-                max_tokens=self._config.max_tokens,
-                timeout=self._config.timeout,
-                max_retries=self._config.max_retries,
+            raise RuntimeError(
+                "No model configured. Call set_model() or provide model= in constructor."
             )
         return self._model
 

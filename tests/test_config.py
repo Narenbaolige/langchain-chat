@@ -52,12 +52,13 @@ class TestLLMConfig:
 
     def test_defaults(self) -> None:
         cfg = LLMConfig()
-        assert cfg.provider == ""
-        assert cfg.model == ""
+        assert cfg.provider == "openai"
+        assert cfg.model == "gpt-4o-mini"
         assert cfg.temperature == 0.7
         assert cfg.max_tokens == 4096
         assert cfg.timeout == 60
         assert cfg.max_retries == 3
+        assert cfg.models == {}
 
 
 class TestProjectConfig:

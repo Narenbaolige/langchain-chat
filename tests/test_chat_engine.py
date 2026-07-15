@@ -11,7 +11,6 @@ from fakes import FakeModel  # noqa: F401 — used in type annotations
 from langchain_core.messages import AIMessage, HumanMessage
 
 from langchain_chat.core.chat_engine import ChatEngine, ChatResponse
-from langchain_chat.core.config_models import LLMConfig
 
 # ------------------------------------------------------------------
 # Local fixtures (FakeModel and llm_config come from conftest.py)
@@ -19,9 +18,9 @@ from langchain_chat.core.config_models import LLMConfig
 
 
 @pytest.fixture
-def engine(llm_config: LLMConfig, fake_model: FakeModel) -> ChatEngine:
+def engine(fake_model: FakeModel) -> ChatEngine:
     """Return a ChatEngine wired to FakeModel."""
-    return ChatEngine(llm_config, model=fake_model)
+    return ChatEngine(model=fake_model)
 
 
 # ------------------------------------------------------------------
@@ -32,11 +31,15 @@ def engine(llm_config: LLMConfig, fake_model: FakeModel) -> ChatEngine:
 class TestInit:
     """Tests for ChatEngine initialisation."""
 
-    def test_init_accepts_config_and_model(
-        self, llm_config: LLMConfig, fake_model: FakeModel
-    ) -> None:
-        engine = ChatEngine(llm_config, model=fake_model)
+    def test_init_accepts_model_parameter(self, fake_model: FakeModel) -> None:
+        engine = ChatEngine(model=fake_model)
         assert engine.model is fake_model
+
+    def test_set_model_replaces_model(self, fake_model: FakeModel) -> None:
+        engine = ChatEngine(model=fake_model)
+        new_model = FakeModel(response="different")
+        engine.set_model(new_model)
+        assert engine.model is new_model
 
     def test_message_count_starts_at_zero(self, engine: ChatEngine) -> None:
         assert engine.message_count == 0
@@ -139,10 +142,10 @@ class TestMemory:
 class TestIntegration:
     """End-to-end ChatEngine scenarios."""
 
-    async def test_full_conversation_flow(self, llm_config: LLMConfig) -> None:
+    async def test_full_conversation_flow(self) -> None:
         """Simulate a real conversation with FakeModel."""
         model = FakeModel(response="Sure, I can help with that!")
-        engine = ChatEngine(llm_config, model=model)
+        engine = ChatEngine(model=model)
 
         resp1 = await engine.chat("Can you help me?")
         assert resp1.content == "Sure, I can help with that!"
@@ -155,9 +158,9 @@ class TestIntegration:
         engine.clear_memory()
         assert engine.message_count == 0
 
-    async def test_streaming_full_conversation(self, llm_config: LLMConfig) -> None:
+    async def test_streaming_full_conversation(self) -> None:
         model = FakeModel(response="Hi!")
-        engine = ChatEngine(llm_config, model=model)
+        engine = ChatEngine(model=model)
 
         collected: list[str] = []
         async for token in engine.stream_chat("Hello", system_prompt="Be friendly."):
@@ -175,8 +178,8 @@ class TestIntegration:
 class TestLoadMessages:
     """Tests for ChatEngine.load_messages()."""
 
-    async def test_load_messages_replaces_memory(self, llm_config: LLMConfig) -> None:
-        engine = ChatEngine(llm_config, model=FakeModel(response="OK"))
+    async def test_load_messages_replaces_memory(self) -> None:
+        engine = ChatEngine(model=FakeModel(response="OK"))
 
         history = [
             HumanMessage(content="Old Q1"),
@@ -187,8 +190,8 @@ class TestLoadMessages:
         engine.load_messages(history)
         assert engine.message_count == 4
 
-    async def test_load_messages_overwrites_previous(self, llm_config: LLMConfig) -> None:
-        engine = ChatEngine(llm_config, model=FakeModel(response="OK"))
+    async def test_load_messages_overwrites_previous(self) -> None:
+        engine = ChatEngine(model=FakeModel(response="OK"))
         await engine.chat("Hello")
         assert engine.message_count == 2
 
@@ -197,8 +200,8 @@ class TestLoadMessages:
         engine.load_messages(history)
         assert engine.message_count == 2
 
-    async def test_load_messages_then_chat(self, llm_config: LLMConfig) -> None:
-        engine = ChatEngine(llm_config, model=FakeModel(response="New"))
+    async def test_load_messages_then_chat(self) -> None:
+        engine = ChatEngine(model=FakeModel(response="New"))
         engine.load_messages([HumanMessage(content="Prior"), AIMessage(content="Prior A")])
         assert engine.message_count == 2
 
@@ -207,8 +210,8 @@ class TestLoadMessages:
         assert engine.message_count == 4  # Prior Q, Prior A, New user, New AI
         assert resp.content == "New"
 
-    async def test_load_empty_messages(self, llm_config: LLMConfig) -> None:
-        engine = ChatEngine(llm_config, model=FakeModel())
+    async def test_load_empty_messages(self) -> None:
+        engine = ChatEngine(model=FakeModel())
         await engine.chat("Hello")
         assert engine.message_count == 2
         engine.load_messages([])

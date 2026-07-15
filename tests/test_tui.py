@@ -10,6 +10,7 @@ from fakes import FakeModel
 
 from langchain_chat.core.chat_engine import ChatEngine
 from langchain_chat.core.config_models import LLMConfig, StorageConfig
+from langchain_chat.core.model_manager import ModelManager
 from langchain_chat.core.prompt_manager import PromptManager
 from langchain_chat.core.session_manager import SessionManager
 from langchain_chat.core.user_manager import UserManager
@@ -55,6 +56,7 @@ class TestCommandExecution:
         user_manager = UserManager(backend)
         prompt_manager = PromptManager(backend)
         session_manager = SessionManager(backend)
+        model_manager = ModelManager(LLMConfig(model="gpt-4o-mini"))
 
         # Ensure a default user exists
         try:
@@ -63,13 +65,14 @@ class TestCommandExecution:
             user = await user_manager.get_user_by_name("testuser")
 
         session = await session_manager.create_session(user.id, title="Test")
-        engine = ChatEngine(LLMConfig(model="test"), model=FakeModel(response="OK"))
+        engine = ChatEngine(model=FakeModel(response="OK"))
         view = ChatView()
 
         return CommandContext(
             user_manager=user_manager,
             prompt_manager=prompt_manager,
             session_manager=session_manager,
+            model_manager=model_manager,
             engine=engine,
             view=view,
             current_user_name="testuser",
@@ -167,9 +170,10 @@ class TestTuiChatAppConstruction:
             user_manager = UserManager(backend)
             prompt_manager = PromptManager(backend)
             session_manager = SessionManager(backend)
-            engine = ChatEngine(LLMConfig(model="test"), model=FakeModel(response="Hi"))
+            engine = ChatEngine(model=FakeModel(response="Hi"))
 
-            app = TuiChatApp(user_manager, prompt_manager, session_manager, engine)
+            model_mgr = ModelManager(LLMConfig(model="gpt-4o-mini"))
+            app = TuiChatApp(user_manager, prompt_manager, session_manager, model_mgr, engine)
             assert app is not None
         finally:
             await backend.close()
@@ -200,13 +204,15 @@ class TestStep8Commands:
             user = await user_manager.get_user_by_name("testuser")
 
         session = await session_manager.create_session(user.id, title="Test")
-        engine = ChatEngine(LLMConfig(model="test"), model=FakeModel(response="OK"))
+        model_manager = ModelManager(LLMConfig(model="gpt-4o-mini"))
+        engine = ChatEngine(model=FakeModel(response="OK"))
         view = ChatView()
 
         return CommandContext(
             user_manager=user_manager,
             prompt_manager=prompt_manager,
             session_manager=session_manager,
+            model_manager=model_manager,
             engine=engine,
             view=view,
             current_user_name="testuser",
