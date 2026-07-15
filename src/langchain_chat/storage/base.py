@@ -116,14 +116,18 @@ class StorageBackend(ABC):
         ...
 
     @abstractmethod
-    async def list_sessions(self, user_id: int | None = None) -> list[dict[str, Any]]:
-        """List sessions, optionally filtered by user.
+    async def list_sessions(
+        self, user_id: int | None = None, limit: int = 0, offset: int = 0
+    ) -> list[dict[str, Any]]:
+        """List sessions, optionally filtered by user, with pagination.
 
         Args:
             user_id: If provided, only return sessions owned by this user.
+            limit: Max records to return (0 = no limit).
+            offset: Records to skip before returning.
 
         Returns:
-            List of session dicts.
+            List of session dicts, ordered by updated_at DESC.
         """
         ...
 

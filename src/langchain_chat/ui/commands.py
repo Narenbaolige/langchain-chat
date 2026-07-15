@@ -254,7 +254,7 @@ async def _cmd_stats(ctx: CommandContext, args: str) -> ActionResult:
 async def _cmd_sessions(ctx: CommandContext, _args: str) -> ActionResult:
     """List recent sessions for the current user."""
     user = await ctx.user_manager.get_user_by_name(ctx.current_user_name)
-    sessions = await ctx.session_manager.list_sessions(user_id=user.id)
+    sessions = await ctx.session_manager.list_sessions(user_id=user.id, limit=20, offset=0)
     if not sessions:
         ctx.view.show_info("No sessions found. Start chatting to create one.")
         return CONTINUE

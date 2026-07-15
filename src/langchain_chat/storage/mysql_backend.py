@@ -197,21 +197,24 @@ class MySQLBackend(StorageBackend):
                 cols = ("id", "user_id", "preset_id", "title", "created_at", "updated_at")
                 return _row_to_dict(row, cols) if row else None
 
-    async def list_sessions(self, user_id: int | None = None) -> list[dict[str, Any]]:
+    async def list_sessions(
+        self, user_id: int | None = None, limit: int = 0, offset: int = 0
+    ) -> list[dict[str, Any]]:
         cols = ("id", "user_id", "preset_id", "title", "created_at", "updated_at")
+        base_sql = (
+            "SELECT id, user_id, preset_id, title, created_at, updated_at FROM sessions"
+        )
+        params: list[Any] = []
+        if user_id is not None:
+            base_sql += " WHERE user_id = %s"
+            params.append(user_id)
+        base_sql += " ORDER BY updated_at DESC"
+        if limit > 0:
+            base_sql += " LIMIT %s OFFSET %s"
+            params.extend([limit, offset])
         async with self._pool.acquire() as conn:
             async with conn.cursor() as cur:
-                if user_id is not None:
-                    await cur.execute(
-                        "SELECT id, user_id, preset_id, title, created_at, updated_at "
-                        "FROM sessions WHERE user_id = %s ORDER BY updated_at DESC",
-                        (user_id,),
-                    )
-                else:
-                    await cur.execute(
-                        "SELECT id, user_id, preset_id, title, created_at, updated_at "
-                        "FROM sessions ORDER BY updated_at DESC"
-                    )
+                await cur.execute(base_sql, tuple(params) if params else ())
                 return [_row_to_dict(r, cols) for r in await cur.fetchall()]
 
     async def delete_session(self, session_id: int) -> bool:

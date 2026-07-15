@@ -70,16 +70,20 @@ class SessionManager:
             raise SessionNotFoundError(f"Session id={session_id} not found")
         return Session.model_validate(data)
 
-    async def list_sessions(self, user_id: int | None = None) -> list[Session]:
-        """List sessions, optionally filtered by user.
+    async def list_sessions(
+        self, user_id: int | None = None, limit: int = 0, offset: int = 0
+    ) -> list[Session]:
+        """List sessions, optionally filtered by user, with pagination.
 
         Args:
             user_id: If provided, only return sessions owned by this user.
+            limit: Max records to return (0 = no limit).
+            offset: Records to skip before returning.
 
         Returns:
-            List of Sessions (may be empty).
+            List of Sessions (may be empty), ordered by most recently updated.
         """
-        rows = await self._storage.list_sessions(user_id)
+        rows = await self._storage.list_sessions(user_id, limit, offset)
         return [Session.model_validate(r) for r in rows]
 
     async def delete_session(self, session_id: int) -> bool:

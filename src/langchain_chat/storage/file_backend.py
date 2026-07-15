@@ -170,11 +170,15 @@ class FileBackend(StorageBackend):
                 return dict(r)
         return None
 
-    async def list_sessions(self, user_id: int | None = None) -> list[dict[str, Any]]:
+    async def list_sessions(
+        self, user_id: int | None = None, limit: int = 0, offset: int = 0
+    ) -> list[dict[str, Any]]:
         rows = await self._read_json("sessions")
         if user_id is not None:
             rows = [r for r in rows if r.get("user_id") == user_id]
         rows.sort(key=lambda r: r.get("updated_at", ""), reverse=True)
+        if limit > 0:
+            rows = rows[offset : offset + limit]
         return [dict(r) for r in rows]
 
     async def delete_session(self, session_id: int) -> bool:

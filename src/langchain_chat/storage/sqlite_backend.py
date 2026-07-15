@@ -116,18 +116,21 @@ class SQLiteBackend(StorageBackend):
         row = await cursor.fetchone()
         return dict(row) if row else None
 
-    async def list_sessions(self, user_id: int | None = None) -> list[dict[str, Any]]:
+    async def list_sessions(
+        self, user_id: int | None = None, limit: int = 0, offset: int = 0
+    ) -> list[dict[str, Any]]:
+        base_sql = (
+            "SELECT id, user_id, preset_id, title, created_at, updated_at FROM sessions"
+        )
+        params: list[Any] = []
         if user_id is not None:
-            cursor = await self._db.execute(
-                "SELECT id, user_id, preset_id, title, created_at, updated_at "
-                "FROM sessions WHERE user_id = ? ORDER BY updated_at DESC",
-                (user_id,),
-            )
-        else:
-            cursor = await self._db.execute(
-                "SELECT id, user_id, preset_id, title, created_at, updated_at "
-                "FROM sessions ORDER BY updated_at DESC"
-            )
+            base_sql += " WHERE user_id = ?"
+            params.append(user_id)
+        base_sql += " ORDER BY updated_at DESC"
+        if limit > 0:
+            base_sql += " LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
+        cursor = await self._db.execute(base_sql, tuple(params) if params else ())
         return [dict(row) for row in await cursor.fetchall()]
 
     async def delete_session(self, session_id: int) -> bool:
