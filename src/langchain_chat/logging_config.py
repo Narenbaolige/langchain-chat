@@ -12,6 +12,8 @@ import logging
 import sys
 from pathlib import Path
 
+_configured: bool = False
+
 
 def setup_logging(
     level: str = "INFO",
@@ -21,6 +23,7 @@ def setup_logging(
 ) -> None:
     """Configure root and project loggers with console + file output.
 
+    Idempotent — repeated calls are safe and do not add duplicate handlers.
     Should be called once at application startup (e.g. from ``main.py``).
 
     Args:
@@ -28,6 +31,11 @@ def setup_logging(
         log_file: Path for the file handler (``None`` disables file output).
         fmt: Optional custom format string.
     """
+    global _configured
+    if _configured:
+        return
+    _configured = True
+
     if fmt is None:
         fmt = "%(asctime)s [%(levelname)-7s] %(name)s: %(message)s"
 
